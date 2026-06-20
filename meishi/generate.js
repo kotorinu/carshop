@@ -65,7 +65,8 @@ function frontSVG() {
   <text x="${X(45)}" y="${Y(41.4)}" font-family="${JP}" font-size="${mm(3.3)}" fill="${C.blue}" ${bold(mm(0.14))} stroke="${C.blue}">AI活用 ・ 業務効率化</text>
 
   <!-- catch -->
-  <text x="${X(45.5)}" y="${Y(51.6)}" font-family="${JP}" font-size="${mm(3.5)}" fill="${C.white}" ${bold(mm(0.12))} stroke="${C.white}">めんどうな作業を、AIで半分に。</text>
+  <text x="${X(45.5)}" y="${Y(50.4)}" font-family="${JP}" font-size="${mm(3.3)}" fill="${C.white}" ${bold(mm(0.13))} stroke="${C.white}">業務効率化に、伴走します。</text>
+  <text x="${X(45.5)}" y="${Y(54.6)}" font-family="${JP}" font-size="${mm(2.6)}" fill="#BFD6F2">小さなお悩みも、ぜひお聞かせください。</text>
 </svg>`;
 }
 
