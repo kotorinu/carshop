@@ -1,0 +1,16 @@
+{
+  "name": "@app/line-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "send-steps": "tsx src/scheduler.ts"
+  },
+  "dependencies": {
+    "@app/shared": "*",
+    "@hono/node-server": "^1.13.7",
+    "@line/bot-sdk": "^9.5.0",
+    "hono": "^4.6.14"
+  }
+}

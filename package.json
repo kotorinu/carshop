@@ -10,10 +10,14 @@
   ],
   "scripts": {
     "gen:scripts": "tsx packages/script-gen/src/cli.ts",
+    "gen:tts": "tsx packages/tts/src/cli.ts",
+    "render": "tsx packages/video-pipeline/src/render.ts",
+    "preview": "tsx packages/video-pipeline/src/preview-still.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
+    "@types/qrcode": "^1.5.6",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

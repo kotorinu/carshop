@@ -49,6 +49,35 @@ npm run gen:scripts -- --car lexus-rx450h-2021-01 --format manga-inventory --lay
 - `packages/line-bot`: @line/bot-sdk webhook(follow→同意→ステップ配信→タグ)、LIFFで来店予約/買取査定。
 - ノーコード代替: エルメ/Lステップ無料枠。
 
+## コマンド早見表
+```bash
+npm run gen:scripts -- --mock          # 台本生成(オフライン)
+npm run gen:tts -- --video <videoId>   # 字幕SRT(+VOICEVOXがあれば音声)
+npm run preview -- --video <videoId>   # 静止プレビュー(Chrome不要・sharp)
+npm run render -- --video <videoId>    # 本番MP4(要Chrome/ネット = 各自PC/CI)
+npm -w @app/line-bot run dev           # LINE webhookサーバ(要 .env)
+npm -w @app/line-bot run send-steps -- --dry   # ステップ配信 dry-run
+npm run typecheck
+```
+
+## 必要な環境変数(.env)
+| 変数 | 用途 |
+|---|---|
+| `ANTHROPIC_API_KEY` | 台本生成(無ければmock) |
+| `SCRIPT_GEN_MODEL` | 台本モデル(既定 claude-sonnet-4-6) |
+| `VOICEVOX_URL` | VOICEVOXエンジン(既定 127.0.0.1:50021) |
+| `LINE_URL` | プロフ誘導/エンドカードQRの先(lin.ee/...) |
+| `SHOP_NAME` / `SHOP_AREA` | エンドカードの店名/エリア |
+| `LINE_CHANNEL_SECRET` / `LINE_CHANNEL_ACCESS_TOKEN` | LINE Messaging API |
+| `LIFF_BOOKING_URL` / `LIFF_APPRAISAL_URL` | 来店予約/買取査定フォーム |
+
+## 実装済みパッケージ
+- `@app/shared` 型・状態機械・パス
+- `@app/script-gen` 台本生成(API/mock)
+- `@app/tts` VOICEVOXクライアント + SRT字幕
+- `@app/video-pipeline` Remotion組立(MangaInventory)+ 静止プレビュー
+- `@app/line-bot` webhook(follow→同意→メニュー→タグ)+ ステップ配信ランナー
+
 ## メモ
 - コミット署名はこの実行環境では付与できない(署名キーが空)。author/committerは noreply で統一。
 - 法令: 動画の価格/スペックは確認ゲートで必ずチェック(古物/景表法)。LINEは同意+配信停止+記録(特電法/APPI)。
