@@ -13,6 +13,8 @@
     "gen:tts": "tsx packages/tts/src/cli.ts",
     "render": "tsx packages/video-pipeline/src/render.ts",
     "preview": "tsx packages/video-pipeline/src/preview-still.ts",
+    "doctor": "tsx tools/doctor.ts",
+    "make": "tsx tools/make.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

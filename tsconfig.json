@@ -16,5 +16,5 @@
       "@app/shared": ["packages/shared/src/index.ts"]
     }
   },
-  "include": ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx"]
+  "include": ["packages/*/src/**/*.ts", "packages/*/src/**/*.tsx", "tools/**/*.ts"]
 }
