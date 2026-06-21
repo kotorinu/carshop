@@ -25,10 +25,12 @@ function parseArgs(argv: string[]) {
 }
 
 function run(scriptRel: string, args: string[]) {
-  // ローカルの tsx でサブステップを実行(OS非依存)
+  // ローカルの tsx でサブステップを実行(OS非依存)。
+  // npx.cmd を直接 spawn すると Windows + Node 20+ で EINVAL になる(CVE-2024-27980 対策で
+  // .cmd の直接実行が禁止された)ため、node の `--import tsx` で .ts を直接起動する。
   execFileSync(
-    process.platform === "win32" ? "npx.cmd" : "npx",
-    ["tsx", path.join(REPO_ROOT, scriptRel), ...args],
+    process.execPath,
+    ["--import", "tsx", path.join(REPO_ROOT, scriptRel), ...args],
     { stdio: "inherit", cwd: REPO_ROOT },
   );
 }
