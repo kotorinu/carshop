@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { messagingApi, validateSignature, type WebhookEvent } from "@line/bot-sdk";
 import { upsertLead, addTag } from "./store.js";
+import { liffRoutes } from "./liff/routes.js";
 import {
   welcomeMessages,
   appraisalMessages,
@@ -18,6 +19,9 @@ const client = new messagingApi.MessagingApiClient({ channelAccessToken });
 export const app = new Hono();
 
 app.get("/", (c) => c.text("line-bot ok"));
+
+// LIFFフォーム(来店予約 / 買取査定): /liff/* と /api/*
+app.route("/", liffRoutes);
 
 app.post("/webhook", async (c) => {
   const body = await c.req.text();

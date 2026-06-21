@@ -111,6 +111,45 @@ export const VideoScriptSchema = z.object({
 });
 export type VideoScript = z.infer<typeof VideoScriptSchema>;
 
+/**
+ * LIFFフォーム送信(data/submissions.json)。
+ * 来店予約=booking / 買取査定=appraisal。lineUserId/displayName/createdAt は
+ * サーバー側でアクセストークン検証後に付与する(クライアントからは受け取らない)。
+ */
+export const BookingSubmissionSchema = z.object({
+  type: z.literal("booking"),
+  lineUserId: z.string(),
+  displayName: z.string().optional(),
+  name: z.string().min(1), // お名前
+  phone: z.string().min(8), // 連絡先(電話)
+  carInterest: z.string().default(""), // 気になる車種(任意)
+  preferredDate: z.string().min(1), // 希望日 YYYY-MM-DD
+  preferredTime: z.string().min(1), // 希望時間帯(午前/午後/夕方)
+  note: z.string().default(""), // ご要望(任意)
+  createdAt: z.string(),
+});
+export type BookingSubmission = z.infer<typeof BookingSubmissionSchema>;
+
+export const AppraisalSubmissionSchema = z.object({
+  type: z.literal("appraisal"),
+  lineUserId: z.string(),
+  displayName: z.string().optional(),
+  name: z.string().min(1), // お名前
+  phone: z.string().min(8), // 連絡先(電話)
+  carName: z.string().min(1), // メーカー・車種
+  year: z.string().min(1), // 年式(西暦・文字列)
+  mileageKm: z.number().int().nonnegative(), // 走行距離(km)
+  note: z.string().default(""), // 車の状態・ご要望(任意)
+  createdAt: z.string(),
+});
+export type AppraisalSubmission = z.infer<typeof AppraisalSubmissionSchema>;
+
+export const SubmissionSchema = z.discriminatedUnion("type", [
+  BookingSubmissionSchema,
+  AppraisalSubmissionSchema,
+]);
+export type Submission = z.infer<typeof SubmissionSchema>;
+
 /** LINEリード(line-bot / data/leads.sqlite と対応・将来用) */
 export const LeadSchema = z.object({
   lineUserId: z.string(),
