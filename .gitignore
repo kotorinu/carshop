@@ -1,0 +1,15 @@
+node_modules/
+data/
+
+# 生成物(再生成可能・サイズ大)
+content/scripts/*.json
+content/audio/
+content/captions/
+content/visuals/
+content/renders/
+
+# 環境変数
+.env
+.env.*
+
+!**/.gitkeep

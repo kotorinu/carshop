@@ -1,0 +1,30 @@
+[
+  {
+    "id": "lexus-rx450h-2021-01",
+    "maker": "レクサス",
+    "model": "RX450h version L",
+    "year": 2021,
+    "mileageKm": 32000,
+    "priceJpy": 5980000,
+    "marketPriceJpy": 6500000,
+    "body": "SUV",
+    "color": "ブラック",
+    "features": ["本革シート", "サンルーフ", "マークレビンソン", "パノラミックビューモニター"],
+    "sellingPoints": ["ワンオーナー・禁煙車", "大阪で現車確認OK", "記録簿フルでコンディション良好"],
+    "photos": ["01.jpg", "02.jpg", "03.jpg"]
+  },
+  {
+    "id": "mini-cooper-s-2019-01",
+    "maker": "MINI",
+    "model": "クーパーS 5ドア",
+    "year": 2019,
+    "mileageKm": 41000,
+    "priceJpy": 2280000,
+    "marketPriceJpy": 2600000,
+    "body": "コンパクト",
+    "color": "ブリティッシュレーシンググリーン",
+    "features": ["ナビ", "LEDヘッドライト", "ペッパーパッケージ"],
+    "sellingPoints": ["維持費の本音も動画で正直に", "通勤にちょうどいいサイズ", "大阪市内すぐ"],
+    "photos": ["01.jpg", "02.jpg"]
+  }
+]
