@@ -5,7 +5,7 @@ import type { Car, VideoFormat, TargetLayer } from "@app/shared";
  * 出力は VideoScript(scenes[]) に対応する JSON のみ。
  */
 export function buildSystemPrompt(tiktokSpec: string): string {
-  return `あなたは日本の外車(輸入車)店のTikTok動画の台本を作る、ショート動画グロースの専門家です。
+  return `あなたは日本の中古車店のTikTok動画の台本を作る、ショート動画グロースの専門家です。
 以下の「伸ばす型」に**厳密に**従って台本を作ってください。
 
 ==== 伸ばす型(tiktok-spec) ====

@@ -24,4 +24,8 @@ export const paths = {
     path.join(CONTENT_DIR, "visuals", videoId),
   renderMp4: (videoId: string) =>
     path.join(CONTENT_DIR, "renders", `${videoId}.mp4`),
+  carClipsDir: (carId: string) =>
+    path.join(CONTENT_DIR, "clips", carId),
+  carClipFile: (carId: string, photoName: string) =>
+    path.join(CONTENT_DIR, "clips", carId, photoName.replace(/\.\w+$/, ".mp4")),
 };

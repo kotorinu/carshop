@@ -32,8 +32,8 @@ function frameSvg(scene: Scene, isLast: boolean): string {
       <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
         <stop offset="0" stop-color="#0E2E55"/><stop offset="1" stop-color="#0A1E3C"/></linearGradient></defs>
       <rect width="${W}" height="${H}" fill="url(#g)"/>
-      <text x="${W / 2}" y="250" text-anchor="middle" font-family="${JP}" font-size="24" fill="#9FC2F2">大阪・外車専門</text>
-      <text x="${W / 2}" y="300" text-anchor="middle" font-family="${JP}" font-size="40" font-weight="900" fill="#fff">Kotokoto 外車</text>
+      <text x="${W / 2}" y="250" text-anchor="middle" font-family="${JP}" font-size="24" fill="#9FC2F2">大阪・中古車</text>
+      <text x="${W / 2}" y="300" text-anchor="middle" font-family="${JP}" font-size="40" font-weight="900" fill="#fff">${process.env.SHOP_NAME ?? "Jupiter Coring"}</text>
       <rect x="${W / 2 - 95}" y="360" width="190" height="190" rx="14" fill="#fff"/>
       <text x="${W / 2}" y="640" text-anchor="middle" font-family="${JP}" font-size="30" font-weight="900" fill="#fff">
         <tspan>　${esc("LINEで無料査定")}　</tspan></text>

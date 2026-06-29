@@ -3,6 +3,7 @@ import {
   AbsoluteFill,
   Sequence,
   Img,
+  Video,
   staticFile,
   interpolate,
   useCurrentFrame,
@@ -161,7 +162,7 @@ const EndCard: React.FC<{
       gap: 36,
     }}
   >
-    <div style={{ color: "#9FC2F2", fontSize: 40 }}>{area}・外車専門</div>
+    <div style={{ color: "#9FC2F2", fontSize: 40 }}>{area}・中古車</div>
     <div style={{ color: "#fff", fontSize: 80, fontWeight: 900 }}>{shopName}</div>
     {qrSrc ? (
       <Img src={staticFile(qrSrc)} style={{ width: 360, height: 360, borderRadius: 18, background: "#fff", padding: 18 }} />
@@ -185,13 +186,31 @@ const EndCard: React.FC<{
   </AbsoluteFill>
 );
 
+/** Kling生成クリップを全画面再生。暗幕オーバーレイ付き */
+const ClipPlayer: React.FC<{ src: string }> = ({ src }) => (
+  <AbsoluteFill style={{ overflow: "hidden", backgroundColor: "#000" }}>
+    <Video
+      src={staticFile(src)}
+      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+    />
+    {/* 文字を読みやすくする暗幕グラデ（下側を濃く） */}
+    <AbsoluteFill
+      style={{
+        background:
+          "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.05) 40%, rgba(0,0,0,0.55) 80%, rgba(0,0,0,0.7) 100%)",
+      }}
+    />
+  </AbsoluteFill>
+);
+
 const SceneView: React.FC<{
   scene: Scene;
   durationFrames: number;
   imageSrc?: string;
+  clipSrc?: string;
   isLast: boolean;
   props: MangaInventoryProps;
-}> = ({ scene, durationFrames, imageSrc, isLast, props }) => {
+}> = ({ scene, durationFrames, imageSrc, clipSrc, isLast, props }) => {
   if (isLast) {
     return (
       <EndCard
@@ -204,7 +223,10 @@ const SceneView: React.FC<{
   }
   return (
     <AbsoluteFill>
-      {scene.visualType === "carPhoto" && imageSrc ? (
+      {scene.visualType === "carPhoto" && clipSrc ? (
+        // Kling生成クリップがあれば最優先で使う
+        <ClipPlayer src={clipSrc} />
+      ) : scene.visualType === "carPhoto" && imageSrc ? (
         <KenBurns src={staticFile(imageSrc)} durationFrames={durationFrames} />
       ) : scene.visualType === "carPhoto" ? (
         <PhotoPlaceholder label={scene.photoRef ?? ""} />
@@ -218,7 +240,7 @@ const SceneView: React.FC<{
 };
 
 export const MangaInventory: React.FC<MangaInventoryProps> = (props) => {
-  const { script, imageByScene } = props;
+  const { script, imageByScene, clipByScene } = props;
   const last = script.scenes.length - 1;
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
@@ -234,6 +256,7 @@ export const MangaInventory: React.FC<MangaInventoryProps> = (props) => {
               scene={scene}
               durationFrames={durationFrames}
               imageSrc={imageByScene[scene.index]}
+              clipSrc={clipByScene?.[scene.index]}
               isLast={i === last}
               props={props}
             />

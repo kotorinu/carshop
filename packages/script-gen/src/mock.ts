@@ -18,11 +18,11 @@ export function buildMockScript(
 
   if (layer === "A_seller") {
     const scenes: Scene[] = [
-      { index: 0, startSec: 0, endSec: 1, narration: "外車買取、ほぼ全員が損してます。", caption: "外車買取、ほぼ全員損してる", visualType: "manga", interrupt: "textPop", visualPrompt: "驚く漫画風キャラ、強い表情、縦構図" },
+      { index: 0, startSec: 0, endSec: 1, narration: "中古車買取、ほぼ全員が損してます。", caption: "中古車買取、ほぼ全員損してる", visualType: "manga", interrupt: "textPop", visualPrompt: "驚く漫画風キャラ、強い表情、縦構図" },
       { index: 1, startSec: 1, endSec: 3.5, narration: "理由はシンプル。査定の出し方を知らないだけ。", caption: "理由は査定方法を知らないだけ", visualType: "manga", interrupt: "zoom", visualPrompt: "考え込む漫画風キャラ" },
       { index: 2, startSec: 3.5, endSec: 8, narration: `たとえばこの${car.maker}${car.model}。相場は${marketMan}前後。`, caption: `相場は${marketMan}前後`, visualType: "carPhoto", photoRef: photo(0), interrupt: "cut" },
       { index: 3, startSec: 8, endSec: 12, narration: "状態と記録簿が揃えば、査定はここまで伸びます。", caption: "状態と記録簿で査定は伸びる", visualType: "carPhoto", photoRef: photo(1), interrupt: "zoom" },
-      { index: 4, startSec: 12, endSec: 18, narration: "大阪で外車を売るなら、まず本当の価値を知るのが先。", caption: "まず本当の価値を知る", visualType: "manga", interrupt: "colorShift", visualPrompt: "¥マークと上向き矢印の演出" },
+      { index: 4, startSec: 12, endSec: 18, narration: "大阪で中古車を売るなら、まず本当の価値を知るのが先。", caption: "まず本当の価値を知る", visualType: "manga", interrupt: "colorShift", visualPrompt: "¥マークと上向き矢印の演出" },
       { index: 5, startSec: 18, endSec: 25, narration: "LINEなら無料で査定シミュレーションができます。", caption: "LINEで無料査定（無料）", visualType: "manga", interrupt: "textPop", sfx: "ポンッ" },
       { index: 6, startSec: 25, endSec: 31, narration: "今だけ買取アップキャンペーン中。気になる方はプロフから。", caption: "今だけ買取アップ中", visualType: "carPhoto", photoRef: photo(0), interrupt: "cut" },
       { index: 7, startSec: 31, endSec: 35, narration: "プロフィールのLINEから、まずは無料査定。", caption: "プロフのLINEで無料査定", visualType: "manga", interrupt: "zoom", visualPrompt: "LINE QRのエンドカード、店名と大阪" },
@@ -31,10 +31,10 @@ export function buildMockScript(
       format,
       targetLayer: layer,
       hookType: "contrarian" as const,
-      hookText: "外車買取、ほぼ全員損してる",
+      hookText: "中古車買取、ほぼ全員損してる",
       scenes,
       cta: "LINEで無料査定（無料）",
-      hashtags: ["#外車買取", "#大阪外車店", "#中古車買取", "#車査定"],
+      hashtags: ["#中古車買取", "#大阪中古車", "#車買取", "#車査定"],
       trendingSoundNote: "緊張→解放系のトレンド音を投稿時に手付け。¥演出に合わせる。",
       estimatedDurationSec: 35,
     };
@@ -58,7 +58,7 @@ export function buildMockScript(
     hookText: "この値段は正直アリ",
     scenes,
     cta: "プロフのLINE→来店予約30秒",
-    hashtags: ["#大阪外車店", "#中古車販売", "#外車", `#${car.maker}`],
+    hashtags: ["#大阪中古車", "#中古車販売", "#中古車", `#${car.maker}`],
     trendingSoundNote: "アップビートのトレンド音を投稿時に手付け。価格リビールに合わせる。",
     estimatedDurationSec: 34,
   };

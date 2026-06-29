@@ -17,7 +17,7 @@ const placeholderScript: VideoScript = {
     { index: 1, startSec: 2, endSec: 4, narration: "CTA", caption: "LINEで無料査定", visualType: "manga" },
   ],
   cta: "LINEで無料査定（無料）",
-  hashtags: ["#外車買取", "#大阪外車店", "#中古車販売"],
+  hashtags: ["#中古車買取", "#大阪中古車", "#中古車販売"],
   trendingSoundNote: "",
   estimatedDurationSec: 4,
   status: "draft",
@@ -29,8 +29,9 @@ const defaultProps: MangaInventoryProps = {
   script: placeholderScript,
   carId: "preview",
   imageByScene: {},
+  clipByScene: {},
   qrSrc: null,
-  shopName: "Kotokoto 外車",
+  shopName: "Jupiter Coring",
   area: "大阪",
 };
 

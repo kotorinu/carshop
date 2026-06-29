@@ -2,7 +2,7 @@
   "name": "kotoiro-car-growth",
   "private": true,
   "version": "0.1.0",
-  "description": "外車店(大阪)のTikTok→LINE→来店 集客自動化システム",
+  "description": "中古車店(大阪)のTikTok→LINE→来店 集客自動化システム",
   "type": "module",
   "workspaces": [
     "meishi",
@@ -14,6 +14,7 @@
     "render": "tsx packages/video-pipeline/src/render.ts",
     "preview": "tsx packages/video-pipeline/src/preview-still.ts",
     "doctor": "tsx tools/doctor.ts",
+    "gen:clips": "tsx packages/ai-video-gen/src/cli.ts",
     "make": "tsx tools/make.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

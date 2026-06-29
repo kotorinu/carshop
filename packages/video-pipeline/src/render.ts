@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -12,7 +12,7 @@ import type { MangaInventoryProps } from "./remotion/types.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // 設定(後で店舗情報に差し替え)
-const SHOP_NAME = process.env.SHOP_NAME ?? "Kotokoto 外車";
+const SHOP_NAME = process.env.SHOP_NAME ?? "Jupiter Coring";
 const AREA = process.env.SHOP_AREA ?? "大阪";
 const LINE_URL = process.env.LINE_URL ?? "https://lin.ee/your-line-id";
 
@@ -49,10 +49,27 @@ async function main() {
     }
   }
 
+  // Kling生成クリップの存在チェック(photos のファイル名 → .mp4 で探す)
+  const clipByScene: Record<number, string> = {};
+  const clipsDir = path.join(CONTENT_DIR, "clips", script.carId);
+  if (existsSync(clipsDir)) {
+    for (const scene of script.scenes) {
+      if (scene.visualType === "carPhoto" && scene.photoRef) {
+        const clipName = scene.photoRef.replace(/\.\w+$/, ".mp4");
+        const rel = path.posix.join("clips", script.carId, clipName);
+        if (existsSync(path.join(CONTENT_DIR, rel))) clipByScene[scene.index] = rel;
+      }
+    }
+    if (Object.keys(clipByScene).length > 0) {
+      console.log(`🎬 Klingクリップ ${Object.keys(clipByScene).length}本 を使用します`);
+    }
+  }
+
   const inputProps: MangaInventoryProps = {
     script,
     carId: script.carId,
     imageByScene,
+    clipByScene,
     qrSrc: qrRel,
     shopName: SHOP_NAME,
     area: AREA,

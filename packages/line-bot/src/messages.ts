@@ -8,7 +8,7 @@ export function welcomeMessages(): messagingApi.Message[] {
   return [
     {
       type: "text",
-      text: "友だち追加ありがとうございます！大阪の外車専門店です🚗\n\n下のメニューからお選びください。配信停止はいつでも「停止」と送ってください。",
+      text: "友だち追加ありがとうございます！大阪の中古車専門店です🚗\n\n下のメニューからお選びください。配信停止はいつでも「停止」と送ってください。",
       quickReply: {
         items: [
           { type: "action", action: { type: "postback", label: "無料査定", data: "menu=appraisal", displayText: "無料査定をしたい" } },

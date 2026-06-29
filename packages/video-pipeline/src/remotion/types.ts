@@ -6,6 +6,8 @@ export type MangaInventoryProps = {
   carId: string;
   /** scene.index -> 実車写真の staticFile パス(存在する場合のみ) */
   imageByScene: Record<number, string>;
+  /** scene.index -> Kling生成動画クリップの staticFile パス(存在する場合のみ) */
+  clipByScene: Record<number, string>;
   /** LINE QR の staticFile パス */
   qrSrc: string | null;
   shopName: string;

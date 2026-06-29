@@ -19,6 +19,7 @@ function parseArgs(argv: string[]) {
     const t = argv[i];
     if (t === "--mock") flags.add("mock");
     else if (t === "--preview") flags.add("preview");
+    else if (t === "--clips") flags.add("clips"); // Kling動画生成を実行する
     else if (t.startsWith("--")) a[t.slice(2)] = argv[++i];
   }
   return { a, flags };
@@ -71,15 +72,22 @@ async function main() {
     process.exit(1);
   }
 
+  // Kling クリップ生成(--clips フラグ or KLING_ACCESS_KEY が設定されている場合)
+  const hasKlingKey = !!process.env.KLING_ACCESS_KEY;
+  if (flags.has("clips") || hasKlingKey) {
+    console.log("\n② Kling AIクリップを生成…");
+    run("packages/ai-video-gen/src/cli.ts", ["--car", a.car]);
+  }
+
   for (const id of videoIds) {
-    console.log(`\n② 字幕（＋VOICEVOXがあれば音声）: ${id}`);
+    console.log(`\n③ 字幕（＋VOICEVOXがあれば音声）: ${id}`);
     run("packages/tts/src/cli.ts", ["--video", id]);
 
     if (flags.has("preview")) {
-      console.log(`③ 静止プレビュー: ${id}`);
+      console.log(`④ 静止プレビュー: ${id}`);
       run("packages/video-pipeline/src/preview-still.ts", ["--video", id]);
     } else {
-      console.log(`③ MP4を書き出し: ${id}`);
+      console.log(`④ MP4を書き出し: ${id}`);
       run("packages/video-pipeline/src/render.ts", ["--video", id]);
     }
   }
