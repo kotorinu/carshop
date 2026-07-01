@@ -23,14 +23,18 @@ export const CarSchema = z.object({
 });
 export type Car = z.infer<typeof CarSchema>;
 
-/** フック型(0〜1秒・tiktok-spec.md と対応) */
+/** フック型(0〜1秒・tiktok-spec.md と対応。2026研究版+旧型互換) */
 export const HookType = z.enum([
-  "contrarian", // 逆張り
+  "shock_fact", // 衝撃の事実(「90%が損してる」)
+  "before_after", // ビフォーアフター(結果を先に見せる)
+  "relatable", // 共感あるある
+  "price_impact", // 価格インパクト(在庫系の主軸)
+  "contrarian", // 逆張り/意外性
   "mistake_warning", // 損失警告
   "open_loop", // オープンループ
   "confession", // 告白
   "identity_call", // 限定呼びかけ
-  "question", // 質問
+  "question", // 疑問提起
   "pattern_interrupt", // 視覚インパクト
   "list_tease", // リスト予告
 ]);
@@ -64,6 +68,15 @@ export const InterruptKind = z.enum([
   "colorShift",
 ]);
 
+/** 実車写真の役割(素材プールからの選定基準) */
+export const PhotoRole = z.enum([
+  "hero", // 正面/斜め前の外観(フック用)
+  "move", // 走り/斜めアングル
+  "interior", // 内装
+  "detail", // ホイール/ライト等のディテール
+]);
+export type PhotoRole = z.infer<typeof PhotoRole>;
+
 /** 1シーン(秒単位タイムラインの1ブロック) */
 export const SceneSchema = z.object({
   index: z.number().int().nonnegative(),
@@ -74,12 +87,32 @@ export const SceneSchema = z.object({
   visualType: VisualType,
   /** carPhoto時に使う car-photos/<carId>/ のファイル名 */
   photoRef: z.string().optional(),
+  /** 実車写真の役割(hero/move/interior/detail) */
+  photoRole: PhotoRole.optional(),
+  /** このシーンで価格を"ドン"とリビールする */
+  priceReveal: z.boolean().optional(),
   /** mangaフレーム生成用プロンプト(SD/Midjourney) */
   visualPrompt: z.string().optional(),
   interrupt: InterruptKind.optional(), // このシーン冒頭の割込み演出
   sfx: z.string().optional(), // 効果音メモ
 });
 export type Scene = z.infer<typeof SceneSchema>;
+
+/**
+ * AI写真選定の結果(content/car-photos/<carId>/selection.json)。
+ * pick:photos が書き、script-gen / gen:clips が読む。
+ * 写真は素材プール — 全部使わず役割別ベストだけ動画に使う。
+ */
+export const PhotoSelectionSchema = z.object({
+  hero: z.string().optional(), // 正面/斜め前の外観(フック用)
+  move: z.string().optional(), // 走り/斜めアングル
+  interior: z.string().optional(), // 内装
+  detail: z.string().optional(), // ホイール/ライト等
+  ranked: z.array(z.string()).default([]), // 良い順の全ランキング
+  reasoning: z.string().default(""), // 選定理由(AIの説明)
+  createdAt: z.string().optional(),
+});
+export type PhotoSelection = z.infer<typeof PhotoSelectionSchema>;
 
 /** 動画の状態(status.ts の state machine と一致) */
 export const VideoStatus = z.enum([

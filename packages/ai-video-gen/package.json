@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@app/shared": "*"
+    "@anthropic-ai/sdk": "^0.65.0",
+    "@app/shared": "*",
+    "sharp": "^0.34.4"
   }
 }

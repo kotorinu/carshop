@@ -2,14 +2,27 @@ import { readFile } from "node:fs/promises";
 import Anthropic from "@anthropic-ai/sdk";
 import {
   VideoScriptSchema,
+  PhotoSelectionSchema,
   paths,
   type Car,
   type VideoFormat,
   type TargetLayer,
   type VideoScript,
+  type PhotoSelection,
 } from "@app/shared";
 import { buildSystemPrompt, buildUserPrompt } from "./prompt.js";
 import { buildMockScript } from "./mock.js";
+
+/** AI写真選定(selection.json)があれば読む。写真は素材プール — 全部は使わない */
+async function loadSelection(carId: string): Promise<PhotoSelection | undefined> {
+  try {
+    return PhotoSelectionSchema.parse(
+      JSON.parse(await readFile(paths.photoSelection(carId), "utf8")),
+    );
+  } catch {
+    return undefined;
+  }
+}
 
 const MODEL = process.env.SCRIPT_GEN_MODEL ?? "claude-sonnet-4-6";
 
@@ -41,6 +54,7 @@ async function generateViaApi(
   car: Car,
   format: VideoFormat,
   layer: TargetLayer,
+  selection?: PhotoSelection,
 ): Promise<VideoScript> {
   const spec = await readFile(paths.tiktokSpec, "utf8");
   const client = new Anthropic();
@@ -48,7 +62,7 @@ async function generateViaApi(
     model: MODEL,
     max_tokens: 2000,
     system: buildSystemPrompt(spec),
-    messages: [{ role: "user", content: buildUserPrompt(car, format, layer) }],
+    messages: [{ role: "user", content: buildUserPrompt(car, format, layer, selection) }],
   });
   const text = msg.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
@@ -79,9 +93,10 @@ export async function generateScript(
   car: Car,
   opts: GenerateOptions,
 ): Promise<VideoScript> {
+  const selection = await loadSelection(car.id);
   const useMock = opts.mock || !process.env.ANTHROPIC_API_KEY;
   if (useMock) {
-    return finalize(buildMockScript(car, opts.format, opts.layer), car);
+    return finalize(buildMockScript(car, opts.format, opts.layer, selection), car);
   }
-  return generateViaApi(car, opts.format, opts.layer);
+  return generateViaApi(car, opts.format, opts.layer, selection);
 }

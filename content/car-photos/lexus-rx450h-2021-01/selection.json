@@ -1,0 +1,14 @@
+{
+  "hero": "01.jpg",
+  "move": "02.jpg",
+  "interior": "03.jpg",
+  "detail": "04.jpg",
+  "ranked": [
+    "01.jpg",
+    "02.jpg",
+    "03.jpg",
+    "04.jpg"
+  ],
+  "reasoning": "APIキー無しのためファイル名順で割り当て(pick:photos を再実行で改善)",
+  "createdAt": "2026-07-01T23:09:00.077Z"
+}

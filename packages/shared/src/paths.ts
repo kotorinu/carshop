@@ -12,9 +12,12 @@ export const CONTENT_DIR = path.join(REPO_ROOT, "content");
 export const paths = {
   carsJson: path.join(CONTENT_DIR, "inventory", "cars.json"),
   tiktokSpec: path.join(CONTENT_DIR, "brand", "tiktok-spec.md"),
+  styleParams: path.join(CONTENT_DIR, "brand", "style-params.json"),
   readingDict: path.join(CONTENT_DIR, "brand", "reading-dict.json"),
   carPhotosDir: (carId: string) =>
     path.join(CONTENT_DIR, "car-photos", carId),
+  photoSelection: (carId: string) =>
+    path.join(CONTENT_DIR, "car-photos", carId, "selection.json"),
   scriptJson: (videoId: string) =>
     path.join(CONTENT_DIR, "scripts", `${videoId}.json`),
   audioDir: (videoId: string) => path.join(CONTENT_DIR, "audio", videoId),

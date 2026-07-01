@@ -15,13 +15,17 @@
     "preview": "tsx packages/video-pipeline/src/preview-still.ts",
     "doctor": "tsx tools/doctor.ts",
     "gen:clips": "tsx packages/ai-video-gen/src/cli.ts",
+    "pick:photos": "tsx packages/ai-video-gen/src/pick-photos.ts",
+    "self-review": "tsx tools/self-review.ts",
     "make": "tsx tools/make.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
     "@types/node": "^22.20.0",
     "@types/qrcode": "^1.5.6",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "zod": "^3.24.1"
   }
 }

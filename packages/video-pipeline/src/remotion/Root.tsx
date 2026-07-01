@@ -2,7 +2,7 @@ import React from "react";
 import { Composition } from "remotion";
 import type { VideoScript } from "@app/shared";
 import { MangaInventory } from "./MangaInventory";
-import { FPS, WIDTH, HEIGHT, type MangaInventoryProps } from "./types";
+import { FPS, WIDTH, HEIGHT, DEFAULT_STYLE_PARAMS, type MangaInventoryProps } from "./types";
 
 // スタジオ表示用の最小ダミー(本番は render.ts が inputProps を渡す)
 const placeholderScript: VideoScript = {
@@ -33,6 +33,7 @@ const defaultProps: MangaInventoryProps = {
   qrSrc: null,
   shopName: "Jupiter Coring",
   area: "大阪",
+  styleParams: DEFAULT_STYLE_PARAMS,
 };
 
 export const RemotionRoot: React.FC = () => {

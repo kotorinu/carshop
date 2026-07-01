@@ -5,170 +5,88 @@
 （このリポジトリはWhisper/moviepyではなく Remotion(React/CSS) で字幕を焼き込む）
 
 ## 役割
-在庫データ(content/inventory/cars.json)と実車写真から、TikTok用タテ動画(1080×1920)を量産する。
-視聴維持率(完了率)が落ちない、豪華で読みやすい動画を作る。漫画調は使わない（実写ショーケース型）。
+在庫データ(content/inventory/cars.json)とAI選定済み実車写真から、TikTok用タテ動画(1080×1920・**15〜30秒**)を量産する。
+完了率70%を狙う、豪華で読みやすい動画を作る。漫画調は使わない（実写ショーケース型）。
 
 ## 判断基準（毎回チェック）
-- 冒頭1秒で離脱されないか（強いフック＋価格/数字のインパクト）
-- 70%まで見られるテンポか（3〜5秒ごとに割込み＝ズーム/カット/数字ドン）
-- テロップは一瞬で読めるか（極太・白・黒縁・短い）
-- 価格・スペックが正確か（景表法・古物商）。誤りは焼く前に止める
+- 冒頭2秒で離脱されないか（数字入りフック＋ヒーロー外観）
+- 70%まで見られるテンポか（**カット2〜4秒ごと**。同じ画が4秒以上続いたら失敗）
+- テロップは一瞬で読めるか（極太・白・黒縁・短い・数字ゴールド）
+- 価格・スペックが正確か（景表法・古物商）。self-reviewの静的チェック+人間ゲートで止める
 
-## 対応動画タイプ
-- 縦動画(1080×1920)：TikTok/リール/ショート（メイン）
-- 横動画(1920×1080)：YouTube向け（将来）。解像度から縦横を自動判定して設定を切替
+## ビジュアル素材の優先順位
+1. **Klingクリップ**（`content/clips/<carId>/<photo>.mp4`・写真から生成した動く5秒動画）→ `ClipPlayer`
+2. **実車写真のKen-Burns**（`content/car-photos/<carId>/`）→ `KenBurns`（scale 1.1→1.3・シーンごとに方向反転）
+3. プレースホルダ（写真なし時の開発用）
+- どちらにも**暗幕グラデ**（上0.25/下0.72・`DarkOverlay`）を重ねて文字を読めるようにする
+- 漫画ハーフトーン/コミック枠は使用禁止。旧mangaシーンは `BrandPanel`（濃紺グラデ）で描画
 
-## ビジュアル方針（実写ショーケース・豪華さ）
-- 実車写真を全画面でKen-Burns（ゆっくりズーム/パン）。常時微動で「止まってない」状態に。
-- 写真の上に濃紺グラデの暗幕(下側を濃く)を重ね、文字を必ず読めるようにする。
-- 漫画ハーフトーン/コミック枠は使用禁止。
+## スタイルパラメータ（重要）
+見た目のツマミは全て `content/brand/style-params.json` に外出しされている。
+**ハードコードせずここを参照・調整すること**。自己採点ループ(tools/self-review.ts)が
+このJSONをホワイトリスト範囲内で自動調整して品質を反復改善する。
+Remotionはfsを読めないため render.ts / preview-still.ts が読み込んで inputProps で渡す。
 
-## シーン別タイムライン（25〜40秒動画の標準構成）
+## シーン構成（15〜30秒・mock.tsとtiktok-spec.mdが定義）
 
-| 開始秒 | 終了秒 | 役割 | 割込み種別 | 実装クラス |
-|--------|--------|------|-----------|-----------|
-| 0 | 1 | フックテキスト + 視覚インパクト | — | `Caption`（フックサイズ） |
-| 1 | 3 | 問題提起（自分ごと化） | Ken-Burns開始 | `KenBurns` + `Caption` |
-| 3 | 8 | 本編・深掘り | zoom継続 | `KenBurns` + `Caption` |
-| 8 | 12 | 解決 + **実車写真1枚目**（信頼の核） | carPhoto切替 | `KenBurns`（別写真） |
-| 12 | 18 | 証拠（実績・他店比較） | SfxPop | `SfxPop` + `Caption` |
-| 14 | 18 | 内装ディテール写真 | carPhoto切替 | `KenBurns`（別写真） |
-| 18 | 25 | 緊急性（限定/キャンペーン）+ 価格リビール | 価格"ドン" | `Caption`（ゴールド数字） |
-| 25 | 30 | CTA（LINE誘導） | — | `Caption` |
-| 30 | 40 | エンドカード | — | `EndCard` |
+### 在庫紹介 B_buyer（15〜19秒・ウォークアラウンド型）
+| 秒 | 役割 | 写真役割 | 演出 |
+|---|---|---|---|
+| 0–2 | フック「この◯◯が598万円」 | hero | `Hook`(112px・数字ゴールド・spring) |
+| 2–5 | 年式/走行 | move | `Caption` |
+| 5–9 | 装備 | interior | `Caption` |
+| 9–12 | 正直な一言(信頼) | detail | `Caption` |
+| 12–15 | **価格リビール** | hero | `PriceReveal`(148px・ドン拡大) |
+| 15–19 | エンドカード | — | `EndCard`(3〜4秒で切る) |
 
-割込みは **3〜5秒ごとに必ず1回** 入れること。静止画が連続して5秒以上続くと離脱率が上がる。
+### 買取 A_seller（20〜27秒）
+フック(損失警告2s) → 問題提起(4s) → 実車例+相場(6s) → 証拠(5s) → CTA(6s) → エンドカード(4s)
 
-## アニメーション実装詳細（FPS=30）
+## 実装コンポーネント（MangaInventory.tsx）
+- `Hook` — 0〜2秒の極太フック。上34%位置・数字は1.3倍ゴールド
+- `GoldText` — 数字/価格/単位(万円/km/年式)を自動検出してゴールドグラデ+拡大
+- `PriceReveal` — `scene.priceReveal: true` のシーンで価格を"ドン"(spring damping80/stiffness200)
+- `SpecBar` — 上部に「¥598万 ／ 2021年式 ／ 3.2万km」常時表示(在庫系のみ・topPx=300で上15%安全域の外)
+- `Caption` — 通常字幕。下31%位置(下25%安全域の外)・数字ゴールド
+- `ClipPlayer` / `KenBurns` / `DarkOverlay` — 素材再生+暗幕
+- `EndCard` — 濃紺+店名+LINE QR+CTA。「大阪・中古車」表記(「外車専門」禁止)
+- `SfxPop` — シーン頭0.5秒の割込みテキスト(ポンッ/ドン)
 
-### Ken-Burns（KenBurns コンポーネント）
-```
-scale: 1.08 → 1.18（シーン全体にかけてlinearに拡大）
-translateX: -10px → +10px（左→右にゆっくりパン）
-```
-シーン長が短い場合（< 3秒 = 90フレーム）はスケール変化量を半分にする。
-実車写真が複数あるシーンは写真ごとにKenBurnsをリセット（`from`を0にする）。
+## 字幕・テロップ設定（style-params.jsonの既定値）
+- フォント：Noto Sans JP Bold（無ければ IPAPGothic フォールバック）
+- 文字色：白 #FFFFFF、縁取り：#0b1b30 8px（WebkitTextStroke + paintOrder:"stroke fill"）
+- 背景：rgba(12,35,64,0.5)・角丸16px（暗幕が効いていれば省略可）
+- 安全域：**上15%(288px)・下25%(480px)はテキスト禁止**（TikTok UI）。字幕は下31%位置
+- 1回の表示：最大2行・1〜2秒。1テロップに次の文を含めない
+- 文字サイズ：フック=112px(90〜150可変)、通常=68px(52〜84可変)、スペックバー=38px
 
-### SfxPop（割込みテキスト）
-```
-spring: damping=12（バウンスあり・弾む感じ）
-opacity: frame[0,6,14] → [0,1,0]（約0.47秒で現れて消える）
-scale: 0.6 + spring（最大約1.6倍まで膨らむ）
-rotate: -8deg（斜めにして動感を出す）
-```
-SfxPopは **シーン頭0〜14フレーム(0〜0.47秒)** だけ表示。それ以降は透明になる。
+## ★ゴールド演出（差別化の肝）
+- 対象: 価格・年式・走行・「◯◯万円」の数字**だけ**。地の文は白（やりすぎ禁止）
+- グラデ: `linear-gradient(180deg, #FFE9A8 0%, #E9C45A 50%, #B8893B 100%)`
+- Remotion: `WebkitBackgroundClip:"text"` + `WebkitTextFillColor:"transparent"`（`GoldText`が自動適用）
+- preview-still(SVG): `fill="url(#gold)"` の linearGradient（`goldTspans`が自動適用）
 
-### Caption（字幕）
-```
-spring: damping=200（バウンスなし・ほぼ即座に止まる）
-durationInFrames: 8（≒0.27秒でフェードイン完了）
-scale: 0.9 → 1.0（小さく始まって定位置に落ち着く）
-```
-表示位置: `paddingBottom: 560px`（画面下から約29%の位置）
-
-### 価格リビール（PriceReveal / "ドン"拡大）
-```
-spring: damping=80, stiffness=200（ドンと来てピタっと止まる）
-```
-実装時は `spring({ frame, fps, config: { damping: 80, stiffness: 200 } })` で
-scaleを 0.7 → 1.0 に変化させる。価格表示シーンの先頭フレームから開始。
-
-## 字幕・テロップ設定（共通）
-
-- フォント：Noto Sans JP Bold（無ければ IPAPGothic 太字でフォールバック）
-- 文字色：白 #FFFFFF
-- 縁取り：黒 #000000、幅 8px（縦）/ 5px（横）（WebkitTextStroke + paintOrder:"stroke fill"）
-- 背景：黒〜濃紺の半透明・角丸ボックス（rgba(12,35,64,0.55)、角丸16px、余白X20 Y12）。暗幕が効いていれば省略可
-- 表示位置：縦は下から25%以内は禁止／上15%は禁止（安全域）。字幕は中央〜やや下
-- 1回の表示：最大2行。短く区切る。1テロップに次の文を含めない
-- 1テロップの表示時間：1〜2秒（30〜60フレーム）を目安。3秒を超える場合は分割する
-- 区切り：VOICEVOXのモーラ単位タイミング(content/captions/<id>.srt)に合わせる
-
-## 文字サイズ
-
-- 縦動画：フック=110〜130px、通常字幕=64〜72px（コード内 fontSize:78）、スペックバー=38〜40px
-- 横動画：フック=80px、通常字幕=48px
-
-## ★豪華さ（差別化の肝）= 数字・価格をゴールドに
-
-- 価格・年式・走行・「◯◯万円」などの数字は金色グラデで強調:
-  `linear-gradient(180deg, #FFE9A8 0%, #E9C45A 50%, #B8893B 100%)` を文字にclip、黒縁8px
-- Remotion実装: `WebkitBackgroundClip:"text"` + `WebkitTextFillColor:"transparent"` + `backgroundClip:"text"`
-- preview-still.ts(SVG)実装: `fill="url(#gold)"` の linearGradient を defs で定義
-- フック内の数字（例「38万円?」の「38万円」）は一段大きく＋ゴールド
-- 価格リビールの瞬間は数字をspringで"ドン"と拡大（damping: 80, stiffness: 200）
-- やりすぎ注意：ゴールドは「数字/価格/限定」だけ。地の文は白でシンプルに
-
-## 上部スペックバー
-
-- 画面上部に小さく「¥◯◯万 / ◯◯年式 / ◯.◯万km」を常時表示（白文字＋細い黒縁、控えめ）。在庫系で必須。
-- 位置: `top: 160px`（TikTok UI安全域の外、上から約8%）。fontSize: 38〜40px
-- 在庫動画では最初のフレームから最後（エンドカード直前）まで全シーンに表示する
-- MangaInventoryProps に `carInfo?` として渡す
-
-## エンドカード（最後5〜10秒）
-
-- 濃紺背景＋店名(SHOP_NAME)＋エリア(SHOP_AREA)＋LINE QR(LINE_URL)＋CTA
-- エンドカード開始タイミング：動画全体の25秒〜30秒あたりから（全体長の75%以降）
-- CTAは層で出し分け：買取=「LINE登録で無料査定」/ 在庫=「在庫リスト全部LINEで送ります」
-- 「外車専門」表記は使わない。「大阪・中古車」表現に統一
-
-## 写真順序
-
-- `content/car-photos/<id>/order.json` があればその順を使う（AI選別済み）
-- なければファイル名順（01.jpg, 02.jpg…）
-- 1枚目=ヒーロー外装（正面/斜め前）が理想。メーター・書類が先頭に来ないようにする
-
-## 技術メモ（このリポジトリ実装）
-
-- 字幕焼き込み＝Remotion(FPS=30, 1080×1920)。`MangaInventory.tsx` の Caption/EndCard/フック描画を編集
+## 技術メモ
+- FPS=30, 1080×1920。シーンは `Sequence` で `startSec*30` から配置
+- Chrome必須のMP4=render.ts（このリモート環境は `/opt/pw-browsers/chromium`）。Chrome不要の確認=preview-still.ts
 - 音楽は焼き込まない（トレンド音は投稿時に手付け）
-- Chrome必須のMP4は `render.ts`（`@remotion/renderer`）。このリモート環境では `/opt/pw-browsers/chromium` が使える
-- Chrome不要の確認は `preview-still.ts`（`sharp` でSVG→PNG合成）
+- 音声(VOICEVOX)があれば `content/audio/<videoId>/` — 現状レンダーには未合成（Phase2）
 
 ## 出力ルール
+- 動画：`content/renders/<videoId>.mp4`（15〜30秒, H.264）
+- 確認用：`<videoId>.preview.png`（フック/価格ドン/エンドカードの3枚帯）
+- 採点：`<videoId>.review.md`（自己採点ループの出力=人間ゲート資料）
 
-- 動画：`content/renders/<videoId>.mp4`（25〜40秒, H.264）
-- 確認用：`content/renders/<videoId>.preview.png`（3フレーム横並び・540×960×3）
-
-## 動画検証手順
-
-### 1. 静止プレビューで方向性チェック（30秒で完了）
-```bash
-npm run make -- --car <id> --mock --preview
-```
-出力: `content/renders/<videoId>.preview.png`（3枚帯：フック/実車/エンドカード）
-
-確認する3点:
-1. フックの文字が大きく読めるか（fontSize 110〜130px 相当）
-2. 実車写真シーンで暗幕が十分か（文字が写真に溶け込んでいないか）
-3. エンドカードのQR・店名・CTAが正しいか
-
-### 2. MP4で動きチェック（2〜3分かかる）
-```bash
-npm run make -- --car <id> --mock
-# Chromiumが見つからない場合:
-PUPPETEER_EXECUTABLE_PATH=/opt/pw-browsers/chromium npm run make -- --car <id> --mock
-```
-
-再生して確認する5点:
-1. 0〜1秒目：フックがすぐ出るか
-2. 3〜5秒ごとにシーンが切り替わるか（一か所でも5秒以上止まったら修正）
-3. 価格数字がゴールドで"ドン"と出るか（18〜25秒あたり）
-4. エンドカードが最後5〜10秒に来るか
-5. 合計25〜40秒に収まっているか
-
-## 校閲ルール（焼き込み前の人間ゲート）
-
-- 価格・年式・走行・車種名の読み(VOICEVOX)を必ず確認
-- 誇大・断定表現を避ける（景表法）。根拠の無い比較は出さない
-- 「外車専門」→「大阪・中古車」に修正されているか確認
+## 検証手順
+1. `npm run make -- --car <id> --mock --preview` → preview.png で構成確認（30秒）
+2. `npm run make -- --car <id> --mock` → MP4で動き確認（2〜3分）
+3. `npm run self-review -- --video <id> --mp4` → AI採点80点+静的チェック0エラーまで
+4. 人間ゲート: 価格・年式・読み・誇大表現・「外車専門」無しを目視
 
 ## デフォルト動作
-
-- 「動画作って」だけでも本書の設定を全自動適用
-- 写真の並びは order.json(AI選別)→無ければファイル名順
+- 「動画作って」だけでも `.claude/skills/buzz-video/SKILL.md` のルーティンを全自動適用
+- 写真選定は selection.json(AI選定)→無ければファイル名順先頭
 
 ## 日次タスク
-
-- 自動生成後、伸びた動画のフック/構成の知見をこのCLAUDE.mdと `content/brand/tiktok-spec.md` に反映する
+- 自動生成後、伸びた動画のフック/構成の知見を `content/brand/tiktok-spec.md` に反映する
+- 月1で `docs/research/tiktok-buzz-research.md` を再調査・更新
