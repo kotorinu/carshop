@@ -57,6 +57,9 @@ async function loadCarInfo(carId: string): Promise<CarInfo | undefined> {
     if (!car) return undefined;
     return {
       priceMan: `${Math.round(car.priceJpy / 10000)}万`,
+      totalMan: car.totalPaymentJpy
+        ? `${Math.round(car.totalPaymentJpy / 10000)}万`
+        : undefined,
       year: car.year,
       mileageManKm: `${(car.mileageKm / 10000).toFixed(1)}万km`,
     };
@@ -105,11 +108,27 @@ export async function buildInputProps(videoId: string): Promise<{
     }
   }
 
+  // VOICEVOXナレーション(gen:tts が生成)があればシーンごとに合成する
+  const audioByScene: Record<number, string> = {};
+  const audioDir = path.join(CONTENT_DIR, "audio", videoId);
+  if (existsSync(audioDir)) {
+    for (const scene of script.scenes) {
+      const wav = `scene-${String(scene.index).padStart(2, "0")}.wav`;
+      if (existsSync(path.join(audioDir, wav))) {
+        audioByScene[scene.index] = path.posix.join("audio", videoId, wav);
+      }
+    }
+    if (Object.keys(audioByScene).length > 0) {
+      console.log(`🔊 ナレーション音声 ${Object.keys(audioByScene).length}本 を合成します`);
+    }
+  }
+
   const inputProps: MangaInventoryProps = {
     script,
     carId: script.carId,
     imageByScene,
     clipByScene,
+    audioByScene,
     qrSrc: qrRel,
     shopName: SHOP_NAME,
     area: AREA,

@@ -13,7 +13,8 @@ export const CarSchema = z.object({
   model: z.string(), // 車種(例 RX450h)
   year: z.number().int(), // 年式(西暦)
   mileageKm: z.number().int().nonnegative(), // 走行距離(km)
-  priceJpy: z.number().int().nonnegative(), // 販売価格(円)
+  priceJpy: z.number().int().nonnegative(), // 車両本体価格(円)
+  totalPaymentJpy: z.number().int().nonnegative().optional(), // 支払総額(円)。中古車広告の公正競争規約(2023年10月〜)で表示必須
   marketPriceJpy: z.number().int().nonnegative().optional(), // 相場/他店比較(円)
   body: z.string().optional(), // ボディタイプ(例 SUV)
   color: z.string().optional(),

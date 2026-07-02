@@ -107,6 +107,7 @@ npm run self-review -- --video <videoId> --mp4   # AI採点(要APIキー)。キ�
 | `content/clips/<id>/` | Kling生成クリップ |
 | `content/renders/<videoId>.review.md` | 自己採点レポート（人間ゲート資料） |
 | `docs/research/tiktok-buzz-research.md` | バズ研究（根拠・月1更新） |
+| `docs/research/gap-analysis.md` | プロ製品比較・足りないもの一覧（P1/P2の実装順もここ） |
 | `.claude/skills/buzz-video/SKILL.md` | 動画生成ルーティンの全手順 |
 | `packages/video-pipeline/src/remotion/MangaInventory.tsx` | Remotionコンポジション |
 | `.env` | 店名/LINE URL/APIキー等の設定 |

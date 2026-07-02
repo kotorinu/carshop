@@ -9,8 +9,7 @@
  * API仕様: https://klingai.kuaishou.com/api
  */
 import { createHmac } from "node:crypto";
-import { readFile } from "node:fs/promises";
-import path from "node:path";
+import sharp from "sharp";
 
 const KLING_API_BASE = "https://api.klingai.com";
 const POLL_INTERVAL_MS = 5000;
@@ -46,6 +45,9 @@ export interface KlingOptions {
 /**
  * 写真1枚から動画URLを生成して返す。
  * ダウンロードは呼び出し側で行う（URLは有効期限あり）。
+ *
+ * 送信前に9:16(1080×1920)へリフレームする。横写真のまま送ると4:3クリップが返り、
+ * 縦画面で大幅クロップ(被写体切れ)になるため。attention crop で被写体を残す。
  */
 export async function generateClipFromPhoto(
   imagePath: string,
@@ -54,10 +56,11 @@ export async function generateClipFromPhoto(
 ): Promise<string> {
   const { accessKey, secretKey, duration = "5", mode = "std" } = opts;
 
-  const imageData = await readFile(imagePath);
-  const ext = path.extname(imagePath).slice(1).toLowerCase();
-  const mime = ext === "png" ? "image/png" : "image/jpeg";
-  const dataUrl = `data:${mime};base64,${imageData.toString("base64")}`;
+  const imageData = await sharp(imagePath)
+    .resize(1080, 1920, { fit: "cover", position: "attention" })
+    .jpeg({ quality: 90 })
+    .toBuffer();
+  const dataUrl = `data:image/jpeg;base64,${imageData.toString("base64")}`;
 
   // タスク作成
   const createRes = await fetch(`${KLING_API_BASE}/v1/videos/image2video`, {

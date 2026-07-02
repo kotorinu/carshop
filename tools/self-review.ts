@@ -96,7 +96,14 @@ function staticChecks(script: VideoScript, car: Car | undefined): StaticResult {
   if (car) {
     const okNumbers = new Set<string>();
     okNumbers.add(`${Math.round(car.priceJpy / 10000)}万`);
+    if (car.totalPaymentJpy) okNumbers.add(`${Math.round(car.totalPaymentJpy / 10000)}万`);
     if (car.marketPriceJpy) okNumbers.add(`${Math.round(car.marketPriceJpy / 10000)}万`);
+    // 支払総額(公正競争規約 2023年10月〜)。在庫紹介はスペックバーが総額表示する前提
+    if (script.targetLayer === "B_buyer" && !car.totalPaymentJpy) {
+      errors.push(
+        "cars.json に totalPaymentJpy(支払総額)が無い — 中古車広告は総額表示が必要(公正競争規約)",
+      );
+    }
     // 価格らしき「◯◯万(円)」だけ照合。走行距離(3.2万km等)・小数の断片は除外
     const priceMentions = allText.match(/(?<![\d.．])(\d{2,4})万(?:円)?(?!\s*(?:km|キロ|㎞))/g) ?? [];
     for (const m of priceMentions) {

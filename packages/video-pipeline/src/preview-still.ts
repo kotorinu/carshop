@@ -56,11 +56,15 @@ function overlayDef(p: StyleParams): string {
 }
 
 /** 上部スペックバー */
-function specBarSvg(p: StyleParams, info?: { priceMan: string; year: number; mileageManKm: string }): string {
+function specBarSvg(
+  p: StyleParams,
+  info?: { priceMan: string; totalMan?: string; year: number; mileageManKm: string },
+): string {
   if (!info || !p.specBar.enabled) return "";
   const fs = p.specBar.fontSize / 2;
   const y = p.specBar.topPx / 2;
-  return `<text x="${W / 2}" y="${y}" text-anchor="middle" font-family="${JP}" font-size="${fs}" font-weight="800" fill="#fff" stroke="rgba(0,0,0,0.85)" stroke-width="2" paint-order="stroke">¥${esc(info.priceMan)} ／ ${info.year}年式 ／ ${esc(info.mileageManKm)}</text>`;
+  const price = info.totalMan ? `総額¥${esc(info.totalMan)}` : `¥${esc(info.priceMan)}`;
+  return `<text x="${W / 2}" y="${y}" text-anchor="middle" font-family="${JP}" font-size="${fs}" font-weight="800" fill="#fff" stroke="rgba(0,0,0,0.85)" stroke-width="2" paint-order="stroke">${price} ／ ${info.year}年式 ／ ${esc(info.mileageManKm)}</text>`;
 }
 
 /** 字幕(白+黒縁・数字ゴールド) */
@@ -109,7 +113,7 @@ async function frameSvg(
     cta: string;
     p: StyleParams;
     carId: string;
-    specInfo?: { priceMan: string; year: number; mileageManKm: string };
+    specInfo?: { priceMan: string; totalMan?: string; year: number; mileageManKm: string };
   },
 ): Promise<string> {
   const { isLast, isFirst, hookText, cta, p, specInfo } = opts;
@@ -172,7 +176,7 @@ async function main() {
   } catch { /* デフォルトで続行 */ }
 
   // 上部スペックバー(在庫系のみ)
-  let specInfo: { priceMan: string; year: number; mileageManKm: string } | undefined;
+  let specInfo: { priceMan: string; totalMan?: string; year: number; mileageManKm: string } | undefined;
   if (script.targetLayer === "B_buyer") {
     try {
       const cars = z.array(CarSchema).parse(JSON.parse(await readFile(paths.carsJson, "utf8")));
@@ -180,6 +184,7 @@ async function main() {
       if (car) {
         specInfo = {
           priceMan: `${Math.round(car.priceJpy / 10000)}万`,
+          totalMan: car.totalPaymentJpy ? `${Math.round(car.totalPaymentJpy / 10000)}万` : undefined,
           year: car.year,
           mileageManKm: `${(car.mileageKm / 10000).toFixed(1)}万km`,
         };

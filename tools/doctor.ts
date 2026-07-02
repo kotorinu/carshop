@@ -24,8 +24,28 @@ async function main() {
   else warn("依存が未インストール … ターミナルで `npm install` を実行してください");
 
   // ANTHROPIC_API_KEY(任意)
-  if (process.env.ANTHROPIC_API_KEY) ok("ANTHROPIC_API_KEY あり(本番の台本生成が使えます)");
-  else warn("ANTHROPIC_API_KEY なし … `--mock` で動きます(台本は簡易版)。本番品質にしたい時だけ設定");
+  if (process.env.ANTHROPIC_API_KEY)
+    ok("ANTHROPIC_API_KEY あり(本番台本・AI写真選定・自己採点が使えます)");
+  else
+    warn("ANTHROPIC_API_KEY なし … `--mock` で動きます(台本は簡易版・写真選定はファイル名順・採点は静的チェックのみ)");
+
+  // Klingキー(任意)
+  if (process.env.KLING_ACCESS_KEY && process.env.KLING_SECRET_KEY)
+    ok("KLINGキー あり(写真→動くクリップ生成が使えます)");
+  else
+    warn("KLINGキー なし … Ken-Burns(ズーム/パン)で動画化します。https://klingai.com で発行して .env に設定");
+
+  // Chrome/Chromium(MP4レンダーに必要)
+  const chromePaths = [
+    process.env.PUPPETEER_EXECUTABLE_PATH,
+    "/opt/pw-browsers/chromium",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
+    "/usr/bin/google-chrome",
+  ].filter(Boolean) as string[];
+  const chrome = chromePaths.find((p) => existsSync(p));
+  if (chrome) ok(`Chromium 検出(${chrome}) — MP4レンダー可`);
+  else warn("Chromium 未検出 … MP4レンダー時に自動DLを試みます(失敗する場合は PUPPETEER_EXECUTABLE_PATH を設定)");
 
   // VOICEVOX(任意)
   const vv = process.env.VOICEVOX_URL ?? "http://127.0.0.1:50021";
@@ -52,11 +72,13 @@ async function main() {
         : 0;
       if (n >= 2) ok(`  ${car.id}: 実車写真 ${n} 枚`);
       else warn(`  ${car.id}: 実車写真 ${n} 枚 … content/car-photos/${car.id}/ に 01.jpg などを2枚以上`);
+      if (!car.totalPaymentJpy)
+        warn(`  ${car.id}: totalPaymentJpy(支払総額)が未設定 … 中古車広告は総額表示が必要(公正競争規約)`);
     }
   }
 
   console.log("\n次の一歩: `npm run make -- --car <車のid> --mock --preview` で静止プレビュー、");
-  console.log("          `npm run make -- --car <車のid>` でMP4を書き出し(初回はChromeを自動取得)。");
+  console.log("          `npm run make -- --car <車のid> --auto` でMP4+自己採点ループ。");
 }
 
 main().catch((e) => {

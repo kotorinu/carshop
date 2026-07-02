@@ -1,6 +1,7 @@
 import React from "react";
 import {
   AbsoluteFill,
+  Audio,
   Sequence,
   Img,
   Video,
@@ -121,9 +122,11 @@ const KenBurns: React.FC<{
 /** Kling生成クリップを全画面再生 */
 const ClipPlayer: React.FC<{ src: string; params: StyleParams }> = ({ src, params }) => (
   <AbsoluteFill style={{ overflow: "hidden", backgroundColor: "#000" }}>
+    {/* loop: クリップ(5秒)よりシーンが長い時に終端フリーズさせない */}
     <Video
       src={staticFile(src)}
       muted
+      loop
       style={{ width: "100%", height: "100%", objectFit: "cover" }}
     />
     <DarkOverlay params={params.darkOverlay} />
@@ -300,7 +303,9 @@ const SpecBar: React.FC<{ carInfo: CarInfo; params: StyleParams }> = ({ carInfo,
         opacity: 0.95,
       }}
     >
-      ¥{carInfo.priceMan} ／ {carInfo.year}年式 ／ {carInfo.mileageManKm}
+      {carInfo.totalMan
+        ? `総額¥${carInfo.totalMan} ／ ${carInfo.year}年式 ／ ${carInfo.mileageManKm}`
+        : `¥${carInfo.priceMan} ／ ${carInfo.year}年式 ／ ${carInfo.mileageManKm}`}
     </div>
   );
 };
@@ -391,24 +396,31 @@ const SceneView: React.FC<{
   durationFrames: number;
   imageSrc?: string;
   clipSrc?: string;
+  audioSrc?: string;
   isFirst: boolean;
   isLast: boolean;
   props: MangaInventoryProps;
   params: StyleParams;
-}> = ({ scene, durationFrames, imageSrc, clipSrc, isFirst, isLast, props, params }) => {
+}> = ({ scene, durationFrames, imageSrc, clipSrc, audioSrc, isFirst, isLast, props, params }) => {
+  // ナレーション(VOICEVOX)。エンドカード含め全シーンで鳴らす
+  const narration = audioSrc ? <Audio src={staticFile(audioSrc)} /> : null;
   if (isLast) {
     return (
-      <EndCard
-        cta={props.script.cta}
-        shopName={props.shopName}
-        area={props.area}
-        qrSrc={props.qrSrc}
-        params={params}
-      />
+      <>
+        {narration}
+        <EndCard
+          cta={props.script.cta}
+          shopName={props.shopName}
+          area={props.area}
+          qrSrc={props.qrSrc}
+          params={params}
+        />
+      </>
     );
   }
   return (
     <AbsoluteFill>
+      {narration}
       {scene.visualType === "carPhoto" && clipSrc ? (
         // Kling生成クリップがあれば最優先で使う
         <ClipPlayer src={clipSrc} params={params} />
@@ -458,6 +470,7 @@ export const MangaInventory: React.FC<MangaInventoryProps> = (props) => {
               durationFrames={durationFrames}
               imageSrc={imageByScene[scene.index]}
               clipSrc={clipByScene?.[scene.index]}
+              audioSrc={props.audioByScene?.[scene.index]}
               isFirst={i === 0}
               isLast={i === last}
               props={props}

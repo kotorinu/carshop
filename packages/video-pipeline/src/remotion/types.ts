@@ -43,7 +43,8 @@ export const DEFAULT_STYLE_PARAMS: StyleParams = {
 
 /** 上部スペックバーに出す在庫情報 */
 export type CarInfo = {
-  priceMan: string; // 例 "598万"
+  priceMan: string; // 車両本体 例 "598万"
+  totalMan?: string; // 支払総額 例 "618万"(公正競争規約: 総額表示必須)
   year: number; // 例 2021
   mileageManKm: string; // 例 "3.2万km"
 };
@@ -56,6 +57,8 @@ export type MangaInventoryProps = {
   imageByScene: Record<number, string>;
   /** scene.index -> Kling生成動画クリップの staticFile パス(存在する場合のみ) */
   clipByScene: Record<number, string>;
+  /** scene.index -> VOICEVOXナレーションwavの staticFile パス(存在する場合のみ) */
+  audioByScene?: Record<number, string>;
   /** LINE QR の staticFile パス */
   qrSrc: string | null;
   shopName: string;
