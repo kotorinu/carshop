@@ -14,3 +14,4 @@ content/renders/
 !.env.example
 
 !**/.gitkeep
+video/build/

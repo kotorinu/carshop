@@ -15,7 +15,8 @@
     "preview": "tsx packages/video-pipeline/src/preview-still.ts",
     "doctor": "tsx tools/doctor.ts",
     "make": "tsx tools/make.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "make:video": "node video/make-video.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
