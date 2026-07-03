@@ -79,7 +79,7 @@ function parsePriceReveal(caption) {
 // 旧形式(manga等)を新visualTypeへ正規化
 function normalizeScene(scene, isLast) {
   const s = { ...scene };
-  if (s.visualType === "carPhoto" || s.visualType === "priceReveal" || s.visualType === "lineCta" || s.visualType === "textCard") {
+  if (s.visualType === "carPhoto" || s.visualType === "priceReveal" || s.visualType === "lineCta" || s.visualType === "textCard" || s.visualType === "videoClip") {
     if (s.visualType === "carPhoto" && !["punch", "panLeft", "panRight", "colorShift"].includes(s.interrupt)) {
       s.interrupt = s.interrupt === "zoom" ? "punch" : "panRight";
     }
@@ -119,6 +119,25 @@ function buildSceneHtml(scene, i, ctx) {
     ? `<div class="chip"><div class="chip-1">${esc(ctx.script.chip.line1)}</div><div class="chip-2">${esc(ctx.script.chip.line2)}</div></div>`
     : "";
 
+  if (scene.visualType === "videoClip") {
+    // AI生成クリップ(content/car-clips/<carId>/<clipRef>)。
+    // HyperFramesの規則で<video>はタイムドdivに入れられないため、
+    // 映像本体はトップレベルの別クリップ(track3)としてctx.extraClipsに登録し、
+    // このシーンdivは字幕・チップ等のオーバーレイだけを持つ。
+    ctx.extraClips.push(
+      `<video id="${id}-clip" class="scene-video" data-start="${start.toFixed(2)}" data-duration="${dur.toFixed(2)}" data-track-index="3" src="${scene._clipSrc}" muted playsinline style="z-index:5"></video>`
+    );
+    return `<div ${attrs}>
+      <div class="fx fx-overlay">
+        <div class="vignette"></div>
+        <div class="scrim"></div>
+        <div class="flash"></div>
+        ${chip}
+        <div class="cap-zone"><div class="cap-bar"></div><div class="caption">${cap}</div></div>
+        ${scene.sfx ? `<div class="sfx-badge">${esc(scene.sfx)}</div>` : ""}
+      </div>
+    </div>`;
+  }
   if (scene.visualType === "carPhoto") {
     const photo = ctx.photoFor(scene.photoRef ?? "01.jpg");
     const isHook = i === 0;
@@ -185,6 +204,18 @@ function buildTweens(scene, i, ctx) {
   if (i > 0) t.push(`tl.fromTo("${id} .fx",{opacity:0},{opacity:1,duration:${OVERLAP},ease:"none"},${s2(start)});`);
   const inAt = start + (i === 0 ? 0.1 : OVERLAP);
 
+  if (scene.visualType === "videoClip") {
+    t.push(`tl.fromTo("${id} .flash",{opacity:0.85},{opacity:0,duration:0.3,ease:"power2.out"},${s2(start)});`);
+    t.push(`tl.fromTo("${id} .cap-bar",{scaleX:0},{scaleX:1,duration:0.26,ease:"power2.inOut"},${s2(inAt)});`);
+    t.push(`tl.fromTo("${id} .caption",{x:34,opacity:0},{x:0,opacity:1,duration:0.32,ease:"power3.out"},${s2(inAt + 0.06)});`);
+    if (ctx.script.chip) {
+      t.push(`tl.fromTo("${id} .chip",{y:-16,opacity:0},{y:0,opacity:1,duration:0.3,ease:"power2.out"},${s2(inAt + 0.1)});`);
+    }
+    if (scene.sfx) {
+      t.push(`tl.fromTo("${id} .sfx-badge",{scale:2.2,opacity:0,rotation:-8},{scale:1,opacity:1,rotation:-8,duration:0.26,ease:"expo.out"},${s2(inAt + 0.3)});`);
+    }
+    return t.join("\n      ");
+  }
   if (scene.visualType === "carPhoto") {
     // 写真モーション: punch=パンチイン / pan=横流し(1本のfromToに統合し多重transform禁止則を守る)
     const kind = PAN_SET.includes(scene.interrupt) ? scene.interrupt : "punch";
@@ -259,6 +290,7 @@ function buildHtml(script, ctx) {
   }
   .scene{position:absolute;inset:0;}
   .fx{position:absolute;inset:0;}
+  .scene-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
   em{font-style:normal;color:${A};}
   /* --- 写真シーン --- */
   .photo-wrap{position:absolute;inset:0;overflow:hidden;}
@@ -325,6 +357,7 @@ function buildHtml(script, ctx) {
 </head>
 <body>
   <div id="comp-root" data-composition-id="root" data-width="1080" data-height="1920" data-start="0" data-duration="${total}">
+    ${ctx.extraClips.join("\n    ")}
     ${scenesHtml}
     <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
     <script>
@@ -369,11 +402,27 @@ async function main() {
     width: 800, margin: 1, color: { dark: "#000000", light: "#ffffff" },
   });
 
+  // AI生成クリップ(videoClip)の解決。無ければ実写真にフォールバックし、生成用プロンプトを案内。
+  const missingClips = [];
+  for (const s of script.scenes) {
+    if (s.visualType !== "videoClip") continue;
+    const src = s.clipRef ? path.join(CONTENT, "car-clips", script.carId, s.clipRef) : null;
+    if (src && fs.existsSync(src)) {
+      fs.copyFileSync(src, path.join(assetsDir, s.clipRef));
+      s._clipSrc = `assets/${s.clipRef}`;
+    } else {
+      missingClips.push(s);
+      s.visualType = "carPhoto";
+      s.interrupt = s.interrupt ?? "punch";
+    }
+  }
+
   const warnings = new Set();
   const photoCache = new Map();
   const ctx = {
     script, car, config: CONFIG,
     theme: THEMES[script.theme] ?? THEMES.default,
+    extraClips: [],
     photoFor(ref) {
       if (!photoCache.has(ref)) photoCache.set(ref, resolvePhoto(script.carId, ref, buildDir, car, warnings));
       return photoCache.get(ref);
@@ -388,6 +437,14 @@ async function main() {
   }
   if (CONFIG.lineUrl.includes("your-line-id")) {
     console.warn("⚠ video/config.json の lineUrl が仮のままです(QRがダミー)");
+  }
+  for (const s of missingClips) {
+    console.warn(`⚠ シーン${s.index}: AIクリップ未生成 → 実写真で代替しました`);
+    console.warn(`  置き場所: content/car-clips/${script.carId}/${s.clipRef ?? "(clipRef未指定)"}`);
+    if (s.genPrompt) {
+      console.warn(`  生成手順: ${s.sourcePhoto ?? "01.jpg"} をKling/Runway等のimage-to-videoに入れて次のプロンプトで生成:`);
+      console.warn(`  "${s.genPrompt}"`);
+    }
   }
   if (noRender) return;
 

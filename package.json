@@ -16,7 +16,8 @@
     "doctor": "tsx tools/doctor.ts",
     "make": "tsx tools/make.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "make:video": "node video/make-video.mjs"
+    "make:video": "node video/make-video.mjs",
+    "sync:inventory": "node video/sync-inventory.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",

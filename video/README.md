@@ -21,6 +21,26 @@ npm run make:video                 # 台本一覧を表示
 npm run make:video -- <id> --draft # 低画質で高速プレビュー
 ```
 
+## 車を選んで作る(実在庫から)
+
+```powershell
+npm run sync:inventory              # 実在庫11台の一覧(カーセンサー同期データ)
+npm run sync:inventory -- AU6956435334   # csIdで1台取り込み(写真も自動DL)
+npm run sync:inventory -- プリウス        # キーワードでもOK
+```
+
+取り込んだ車の台本を作れば(Claudeに「◯◯の動画作って」でOK)、そのまま動画化できる。
+
+## AI動画クリップ(走ってる映像)を混ぜる
+
+台本のシーンを `visualType: "videoClip"` にして、生成したクリップを
+`content/car-clips/<carId>/<clipRef>` に置くと動画に織り込まれる。
+
+- クリップが**まだ無くても動く**(実写真で代替+生成用プロンプトをコンソールに表示)
+- 生成のやり方: 実車写真をKling / PixVerse / Hailuo等のimage-to-videoに入れ、
+  台本の `genPrompt` を貼って5秒クリップを作る(無料枠あり。課金しても月1,000〜2,000円で十分)
+- 注意: AI生成映像は「イメージ映像」。実車の傷・状態は必ず実写真パートで見せる(誤認防止)
+
 ## 最初に1回だけ設定
 
 - `video/config.json` の `lineUrl` を店舗公式LINEの友だち追加URL(lin.ee/...)に変える
