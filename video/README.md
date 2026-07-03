@@ -27,15 +27,23 @@ npm run make:video -- <id> --draft # 低画質で高速プレビュー
   → エンドカードのQRが本物になる
 - 店名・住所・営業時間も同ファイルで変更可
 
-## 仕組み
+## 仕組み(台本v2)
 
-- `content/scripts/<videoId>.json`(script-genの出力)の秒単位シーンをそのまま映像化
-- `visualType: "carPhoto"` → 実車写真＋Ken Burns＋字幕(TikTok安全域準拠)
-- `visualType: "manga"` → タイポグラフィカードに自動変換
-  - キャプションに「→」+数字 → 価格リビール演出(取り消し線→金色ドン)
-  - LINE関連 → QR付きエンドカード
-- 写真が無いシーンは仮画像で生成される(警告が出る)。写真を置いて再実行すれば本番品質
-- 音はあえて入れない設計(tiktok-spec: トレンド音は投稿時に手付けするのが伸びる)
+- `content/scripts/<videoId>.json` の秒単位シーンをそのまま映像化
+- **caption内の【言葉】はアクセント色で強調**される
+- `visualType`:
+  - `carPhoto` — 実車写真。`interrupt`: `punch`(パンチイン+白フラッシュ) / `panLeft` / `panRight`
+  - `priceReveal` — 価格カウントアップ(`priceLabel`/`priceValue`/`priceUnit`/`priceNote`)
+  - `textCard` — 大文字カード(`bigText`、`\n`改行可)
+  - `lineCta` — LINE QRエンドカード
+- `theme: "kaitori"` で赤基調(買取用)。既定は金基調(在庫用)
+- `chip: {line1, line2}` で写真シーン左上に車両情報チップ
+- `hookText` は `\n` で改行位置を指定できる
+- 旧形式(`visualType: "manga"`)も自動変換で動く
+- 写真が無いシーンは仮画像+警告。音は入れない設計(トレンド音は投稿時に手付けが伸びる)
+
+**尺の方針**: 在庫20〜24秒 / 買取16〜20秒。完了率(70%が拡散の壁)を最優先し、
+1シーン2〜2.5秒のテンポで最後まで見させる。
 
 ## トラブル時
 
