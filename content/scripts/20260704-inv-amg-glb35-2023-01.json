@@ -1,0 +1,27 @@
+{
+  "videoId": "20260704-inv-amg-glb35-2023-01",
+  "carId": "amg-glb35-2023-01",
+  "format": "photo-inventory",
+  "targetLayer": "B_buyer",
+  "hookType": "open_loop",
+  "hookText": "2023年式の【AMG】が\nこの値段",
+  "chip": { "line1": "AMG GLB 35", "line2": "2023年式・1.2万km" },
+  "scenes": [
+    { "index": 0, "startSec": 0, "endSec": 1.3, "narration": "2023年式のAMGがこの値段。", "caption": "2023年式の【AMG】が\nこの値段", "visualType": "carPhoto", "photoRef": "01.jpg", "interrupt": "punch" },
+    { "index": 1, "startSec": 1.3, "endSec": 3.4, "narration": "AMG GLB35、4マチックの4WD。", "caption": "GLB 35 【4MATIC】 4WD", "visualType": "carPhoto", "photoRef": "02.jpg", "interrupt": "panRight" },
+    { "index": 2, "startSec": 3.4, "endSec": 5.5, "narration": "走行わずか1.2万キロ。", "caption": "走行 【1.2万km】 だけ", "visualType": "carPhoto", "photoRef": "03.jpg", "interrupt": "punch" },
+    { "index": 3, "startSec": 5.5, "endSec": 7.8, "narration": "内装のコンディション、見てください。", "caption": "内装 この状態", "visualType": "carPhoto", "photoRef": "05.jpg", "interrupt": "panLeft" },
+    { "index": 4, "startSec": 7.8, "endSec": 10.0, "narration": "衝突軽減もクルコンも全部載ってます。", "caption": "衝突軽減・ACC 【全部載せ】", "visualType": "carPhoto", "photoRef": "06.jpg", "interrupt": "punch" },
+    { "index": 5, "startSec": 10.0, "endSec": 13.6, "narration": "支払総額、612.6万円。", "caption": "支払総額 612.6万円", "visualType": "priceReveal", "priceLabel": "支払総額", "priceValue": 612.6, "priceUnit": "万円", "priceNote": "法定整備付き・保証付き", "interrupt": "colorShift" },
+    { "index": 6, "startSec": 13.6, "endSec": 16.2, "narration": "車検整備付き、保証付きでお渡しします。", "caption": "車検整備付き・【保証付き】", "visualType": "carPhoto", "photoRef": "08.jpg", "interrupt": "panRight" },
+    { "index": 7, "startSec": 16.2, "endSec": 18.2, "narration": "現車は大阪・寝屋川。1台限りです。", "caption": "現車あり【1台限り】大阪・寝屋川", "visualType": "carPhoto", "photoRef": "01.jpg", "interrupt": "punch", "sfx": "残り1台" },
+    { "index": 8, "startSec": 18.2, "endSec": 22.0, "narration": "在庫確認と来店予約は、プロフのLINEから30秒です。", "caption": "LINEで在庫確認・来店予約", "visualType": "lineCta", "interrupt": "cut" }
+  ],
+  "cta": "プロフのLINE→来店予約30秒",
+  "hashtags": ["#AMG", "#GLB35", "#大阪中古車", "#外車のある生活", "#寝屋川"],
+  "trendingSoundNote": "アップテンポのトレンド音を投稿時に手付け。10.0sの価格リビールにドロップを合わせる。",
+  "estimatedDurationSec": 22,
+  "status": "draft",
+  "reviewNotes": "価格・年式・走行はカーセンサー実掲載値(AU6951305899)。変更時は要更新",
+  "createdAt": "2026-07-04T00:00:00.000Z"
+}

@@ -1,0 +1,26 @@
+{
+  "videoId": "20260704-kaitori-general-01",
+  "carId": "kaitori-mix-01",
+  "format": "photo-kaitori",
+  "targetLayer": "A_seller",
+  "hookType": "contrarian",
+  "hookText": "他店で【0円】と言われた車 買います",
+  "theme": "kaitori",
+  "chip": { "line1": "買取・査定", "line2": "大阪・寝屋川" },
+  "scenes": [
+    { "index": 0, "startSec": 0, "endSec": 1.5, "narration": "他店で0円と言われた車、うちは買います。", "caption": "他店で【0円】と言われた車 買います", "visualType": "carPhoto", "photoRef": "01.jpg", "interrupt": "punch" },
+    { "index": 1, "startSec": 1.5, "endSec": 3.8, "narration": "過走行も、年式が古くても、まず見せてください。", "caption": "過走行・低年式 【あきらめないで】", "visualType": "carPhoto", "photoRef": "02.jpg", "interrupt": "panLeft" },
+    { "index": 2, "startSec": 3.8, "endSec": 6.4, "narration": "販売まで自社でやるので、中間マージンを乗せません。", "caption": "自社販売だから【中間マージンなし】", "visualType": "carPhoto", "photoRef": "03.jpg", "interrupt": "punch" },
+    { "index": 3, "startSec": 6.4, "endSec": 9.4, "narration": "査定はLINEに写真を3枚送るだけ。", "caption": "LINEに写真【3枚】送るだけ", "visualType": "textCard", "bigText": "写真3枚で\n概算査定", "interrupt": "colorShift" },
+    { "index": 4, "startSec": 9.4, "endSec": 12.0, "narration": "来店不要。大阪なら出張査定にも伺います。", "caption": "来店不要・【出張査定OK】", "visualType": "carPhoto", "photoRef": "05.jpg", "interrupt": "panRight" },
+    { "index": 5, "startSec": 12.0, "endSec": 14.2, "narration": "売るか決める前の「いくらになる?」だけでも歓迎です。", "caption": "「いくらになる?」だけでOK", "visualType": "carPhoto", "photoRef": "06.jpg", "interrupt": "punch" },
+    { "index": 6, "startSec": 14.2, "endSec": 18.0, "narration": "無料査定は、プロフのLINEからどうぞ。", "caption": "LINEで無料査定", "visualType": "lineCta", "interrupt": "cut" }
+  ],
+  "cta": "LINEで無料査定(30秒)",
+  "hashtags": ["#車買取", "#廃車", "#大阪買取", "#車売りたい", "#寝屋川"],
+  "trendingSoundNote": "落ち着いた/エモ系トレンド音。6.4sのtextCardで転調に合わせる。",
+  "estimatedDurationSec": 18,
+  "status": "draft",
+  "reviewNotes": "金額例は出さない(捏造禁止)。ポジションは「他店0円でも見ます」+自社販売の構造的優位のみ",
+  "createdAt": "2026-07-04T00:00:00.000Z"
+}
