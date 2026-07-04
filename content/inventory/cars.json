@@ -34,7 +34,10 @@
       "09.jpg",
       "10.jpg"
     ],
-    "sourceNote": "カーセンサー掲載の実在庫(AU6951305899)と同期。価格変更時は kotokoto-company-site/data/cars.json を確認"
+    "sourceNote": "カーセンサー掲載の実在庫(AU6951305899)と同期。価格変更時は kotokoto-company-site/data/cars.json を確認",
+    "csId": "AU6951305899",
+    "heroImageUrl": "https://ccsrpcma.carsensor.net/CSphoto/bkkn/488/221/U00052488221/U00052488221_002L.JPG",
+    "detailUrl": "https://www.carsensor.net/usedcar/detail/AU6951305899/index.html"
   },
   {
     "id": "alphard-240s-01",
@@ -61,7 +64,10 @@
       "05.jpg",
       "06.jpg"
     ],
-    "sourceNote": "カーセンサー掲載の実在庫(AU6798877084相当)と同期"
+    "sourceNote": "カーセンサー掲載の実在庫(AU6798877084相当)と同期",
+    "csId": "AU6798877084",
+    "heroImageUrl": "https://ccsrpcma.carsensor.net/CSphoto/bkkn/584/485/U00051584485/U00051584485_003L.JPG",
+    "detailUrl": "https://www.carsensor.net/usedcar/detail/AU6798877084/index.html"
   },
   {
     "id": "トヨタ-プリウス-AU6956435334",
@@ -103,6 +109,8 @@
       "09.jpg",
       "10.jpg"
     ],
-    "sourceNote": "カーセンサー実在庫(AU6956435334)と同期 2026-07-03"
+    "sourceNote": "カーセンサー実在庫(AU6956435334)と同期 2026-07-03",
+    "heroImageUrl": "https://ccsrpcma.carsensor.net/CSphoto/bkkn/521/134/U00052521134/U00052521134_001L.JPG",
+    "detailUrl": "https://www.carsensor.net/usedcar/detail/AU6956435334/index.html"
   }
 ]
