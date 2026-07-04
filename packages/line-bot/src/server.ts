@@ -9,7 +9,23 @@ import {
   bookingMessages,
   unsubscribedMessage,
   fallbackMessages,
+  bookingReceivedMessages,
 } from "./messages.js";
+
+const OWNER_LINE_USER_ID = process.env.OWNER_LINE_USER_ID ?? "";
+
+/** 新しいリード(来店希望など)をオーナーにLINE通知。未設定ならログのみ */
+async function notifyOwner(text: string): Promise<void> {
+  if (!OWNER_LINE_USER_ID) {
+    console.log("[lead]", text);
+    return;
+  }
+  try {
+    await client.pushMessage({ to: OWNER_LINE_USER_ID, messages: [{ type: "text", text }] });
+  } catch (err) {
+    console.error("notifyOwner failed", err);
+  }
+}
 
 const channelSecret = process.env.LINE_CHANNEL_SECRET ?? "";
 const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
@@ -76,6 +92,17 @@ async function handleEvent(event: WebhookEvent): Promise<void> {
       if (userId) addTag(userId, "buyback_inquiry");
       return reply(event.replyToken, appraisalMessages());
     }
+    // 来店希望(予約カードの日時ボタン or 自由入力)→ 即時受付 + オーナー通知
+    if (t.startsWith("来店希望")) {
+      if (userId) {
+        addTag(userId, "booking_requested");
+        upsertLead(userId, { stage: "booking_requested" });
+      }
+      await notifyOwner(`🔔 来店予約リクエスト\n${t}\nLINE公式アカウントのチャットから確定連絡をしてください(30分以内目標)`);
+      return reply(event.replyToken, bookingReceivedMessages(t));
+    }
+    // 自由文もリードの可能性が高いのでオーナーに転送
+    await notifyOwner(`💬 お客様からメッセージ\n「${t}」\nチャットから返信してください(30分以内目標)`);
     return reply(event.replyToken, fallbackMessages());
   }
 }

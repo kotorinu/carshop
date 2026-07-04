@@ -137,9 +137,11 @@ function carBubble(car: Car): messagingApi.FlexBubble {
   };
 }
 
-/** 在庫案内(実在庫のFlexカルーセル) */
+/** 在庫案内(実在庫のFlexカルーセル・価格の安い順) */
 export function inventoryMessages(): messagingApi.Message[] {
-  const cars = CARS.filter((c) => c.heroImageUrl).slice(0, 10);
+  const cars = CARS.filter((c) => c.heroImageUrl)
+    .sort((a, b) => (a.priceJpy ?? Infinity) - (b.priceJpy ?? Infinity))
+    .slice(0, 10);
   if (!cars.length) {
     return [{ type: "text", text: "最新の在庫をご案内します。気になる車種があればお気軽に返信ください。" }];
   }
@@ -208,7 +210,7 @@ export function bookingMessages(): messagingApi.Message[] {
           type: "box", layout: "vertical", spacing: "md",
           contents: [
             { type: "text", text: "📅 来店予約", weight: "bold", size: "xl" },
-            { type: "text", text: "現車確認大歓迎です。ご希望の日にちと時間帯をこのトークに送ってください(例:「土曜の午前」)。折り返し確定のご連絡をします。", size: "sm", wrap: true, color: "#555555" },
+            { type: "text", text: "現車確認大歓迎です。下のボタンから希望の時間帯を選ぶだけでOK。折り返し確定のご連絡をします。", size: "sm", wrap: true, color: "#555555" },
             { type: "separator" },
             { type: "text", text: `🏠 ${SHOP.address}`, size: "sm", wrap: true },
             { type: "text", text: `🕘 ${SHOP.hours}`, size: "sm", wrap: true },
@@ -230,6 +232,27 @@ export function bookingMessages(): messagingApi.Message[] {
           ],
         },
       },
+      // クロージングの鉄則: 日時は選択肢で出す(自由入力より予約率が上がる)
+      quickReply: {
+        items: [
+          { type: "action", action: { type: "message", label: "今週土曜 午前", text: "来店希望: 今週土曜の午前" } },
+          { type: "action", action: { type: "message", label: "今週土曜 午後", text: "来店希望: 今週土曜の午後" } },
+          { type: "action", action: { type: "message", label: "今週日曜 午前", text: "来店希望: 今週日曜の午前" } },
+          { type: "action", action: { type: "message", label: "今週日曜 午後", text: "来店希望: 今週日曜の午後" } },
+          { type: "action", action: { type: "message", label: "平日の夕方", text: "来店希望: 平日の夕方" } },
+        ],
+      },
+    },
+  ];
+}
+
+/** 「来店希望:」への即時受付応答(取りこぼし防止の最重要ポイント) */
+export function bookingReceivedMessages(userText: string): messagingApi.Message[] {
+  const wish = userText.replace(/^来店希望:\s*/, "");
+  return [
+    {
+      type: "text",
+      text: `「${wish}」で承りました!🚗\n担当が空き状況を確認して、本日中に確定のご連絡をします。\n\n見たい車が決まっていたら、車種名を送っておいてもらえるとご案内がスムーズです。`,
     },
   ];
 }
@@ -238,6 +261,19 @@ export function unsubscribedMessage(): messagingApi.Message[] {
   return [{ type: "text", text: "配信を停止しました。再開したいときは「再開」と送ってください。" }];
 }
 
+/** 自由文への応答: メニューを押し付けず、人が確認する前提の受け答えにする */
 export function fallbackMessages(): messagingApi.Message[] {
-  return welcomeMessages();
+  return [
+    {
+      type: "text",
+      text: `メッセージありがとうございます😊\n担当が確認して、営業時間内(${SHOP.hours})にお返事します。\n\nお急ぎの方は下のメニューもご利用ください。`,
+      quickReply: {
+        items: [
+          { type: "action", action: { type: "postback", label: "在庫を見る", data: "menu=inventory", displayText: "在庫を見たい" } },
+          { type: "action", action: { type: "postback", label: "無料査定", data: "menu=appraisal", displayText: "無料査定をしたい" } },
+          { type: "action", action: { type: "postback", label: "来店予約", data: "menu=booking", displayText: "来店予約したい" } },
+        ],
+      },
+    },
+  ];
 }
