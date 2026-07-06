@@ -71,7 +71,7 @@ async function handleEvent(event: WebhookEvent): Promise<void> {
     if (userId && menu === "appraisal") addTag(userId, "buyback_inquiry");
     if (userId && menu === "inventory") addTag(userId, "inventory_interested");
     if (menu === "appraisal") return reply(event.replyToken, appraisalMessages());
-    if (menu === "inventory") return reply(event.replyToken, inventoryMessages());
+    if (menu === "inventory") return reply(event.replyToken, await inventoryMessages());
     if (menu === "booking") return reply(event.replyToken, bookingMessages());
     return;
   }

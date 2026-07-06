@@ -40,6 +40,50 @@ function loadCars(): Car[] {
 }
 const CARS = loadCars();
 
+// 会社サイトのカーセンサー同期済み在庫(公開JSON)をライブ取得。
+// 5分キャッシュ+失敗時はリポジトリ同梱のcars.jsonにフォールバック。
+// → カーセンサーの在庫更新が、デプロイなしでLINEカルーセルに自動反映される。
+const INVENTORY_URL = process.env.INVENTORY_URL ?? "https://kotokoto-company-site.vercel.app/data/cars.json";
+let liveCache: { at: number; cars: Car[] } | null = null;
+
+type KotokotoCar = {
+  csId?: string; id?: string; maker?: string; name?: string; grade?: string;
+  year?: number; mileage?: number; price?: number; inspection?: string;
+  images?: string[]; sold?: boolean;
+};
+
+function fromKotokoto(c: KotokotoCar): Car {
+  return {
+    id: c.csId ?? c.id ?? "",
+    maker: c.maker ?? "",
+    model: [c.name, c.grade].filter(Boolean).join(" "),
+    year: c.year ?? null,
+    mileageKm: c.mileage != null ? Math.round(c.mileage * 10000) : null,
+    priceJpy: c.price != null ? Math.round(c.price * 10000) : null,
+    heroImageUrl: c.images?.[0],
+    detailUrl: c.csId ? `https://www.carsensor.net/usedcar/detail/${c.csId}/index.html` : undefined,
+    inspection: c.inspection ?? null,
+  };
+}
+
+async function fetchLiveCars(): Promise<Car[]> {
+  if (liveCache && Date.now() - liveCache.at < 5 * 60_000) return liveCache.cars;
+  try {
+    const res = await fetch(INVENTORY_URL, { signal: AbortSignal.timeout(8000) });
+    if (res.ok) {
+      const raw = (await res.json()) as KotokotoCar[];
+      const cars = raw.filter((c) => !c.sold).map(fromKotokoto).filter((c) => c.heroImageUrl);
+      if (cars.length) {
+        liveCache = { at: Date.now(), cars };
+        return cars;
+      }
+    }
+  } catch (err) {
+    console.error("live inventory fetch failed; falling back to bundled cars.json", err);
+  }
+  return CARS;
+}
+
 const yen = (n: number) => (n / 10000).toLocaleString("ja-JP", { maximumFractionDigits: 1 }) + "万円";
 const km = (n: number) => (n / 10000).toFixed(1) + "万km";
 
@@ -137,9 +181,10 @@ function carBubble(car: Car): messagingApi.FlexBubble {
   };
 }
 
-/** 在庫案内(実在庫のFlexカルーセル・価格の安い順) */
-export function inventoryMessages(): messagingApi.Message[] {
-  const cars = CARS.filter((c) => c.heroImageUrl)
+/** 在庫案内(カーセンサー同期のライブ在庫Flexカルーセル・価格の安い順) */
+export async function inventoryMessages(): Promise<messagingApi.Message[]> {
+  const cars = (await fetchLiveCars())
+    .filter((c) => c.heroImageUrl)
     .sort((a, b) => (a.priceJpy ?? Infinity) - (b.priceJpy ?? Infinity))
     .slice(0, 10);
   if (!cars.length) {

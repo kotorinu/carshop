@@ -13,7 +13,7 @@
     { "index": 3, "startSec": 5.5, "endSec": 7.8, "narration": "内装のコンディション、見てください。", "caption": "内装 この状態", "visualType": "carPhoto", "photoRef": "05.jpg", "interrupt": "panLeft" },
     { "index": 4, "startSec": 7.8, "endSec": 10.0, "narration": "衝突軽減もクルコンも全部載ってます。", "caption": "衝突軽減・ACC 【全部載せ】", "visualType": "carPhoto", "photoRef": "06.jpg", "interrupt": "punch" },
     { "index": 5, "startSec": 10.0, "endSec": 13.6, "narration": "支払総額、612.6万円。", "caption": "支払総額 612.6万円", "visualType": "priceReveal", "priceLabel": "支払総額", "priceValue": 612.6, "priceUnit": "万円", "priceNote": "法定整備付き・保証付き", "interrupt": "colorShift" },
-    { "index": 6, "startSec": 13.6, "endSec": 16.2, "narration": "車検整備付き、保証付きでお渡しします。", "caption": "車検整備付き・【保証付き】", "visualType": "carPhoto", "photoRef": "08.jpg", "interrupt": "panRight" },
+    { "index": 6, "startSec": 13.6, "endSec": 16.2, "narration": "この価格で、この走り。", "caption": "この価格で 【この走り】", "visualType": "videoClip", "clipRef": "driving-01.mp4", "sourcePhoto": "08.jpg", "genPrompt": "White Mercedes-AMG SUV driving smoothly on a scenic coastal road at golden hour, cinematic tracking shot, slight motion blur on wheels, dynamic camera movement following the car" },
     { "index": 7, "startSec": 16.2, "endSec": 18.2, "narration": "現車は大阪・寝屋川。1台限りです。", "caption": "現車あり【1台限り】大阪・寝屋川", "visualType": "carPhoto", "photoRef": "01.jpg", "interrupt": "punch", "sfx": "残り1台" },
     { "index": 8, "startSec": 18.2, "endSec": 22.0, "narration": "在庫確認と来店予約は、プロフのLINEから30秒です。", "caption": "LINEで在庫確認・来店予約", "visualType": "lineCta", "interrupt": "cut" }
   ],
