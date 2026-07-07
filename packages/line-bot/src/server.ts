@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { messagingApi, validateSignature, type WebhookEvent } from "@line/bot-sdk";
-import { upsertLead, addTag } from "./store.js";
+import { upsertLead, addTag, appendMessage, recentMessages, allLeads } from "./store.js";
 import { liffRoutes } from "./liff/routes.js";
 import {
   welcomeMessages,
@@ -35,6 +35,18 @@ const client = new messagingApi.MessagingApiClient({ channelAccessToken });
 export const app = new Hono();
 
 app.get("/", (c) => c.text("line-bot ok"));
+
+// 数字チェッカー用の管理API(毎日のダイジェストが読む)。ADMIN_TOKENで保護。
+app.get("/admin/leads", (c) => {
+  const token = process.env.ADMIN_TOKEN ?? "";
+  if (!token || c.req.query("token") !== token) return c.text("unauthorized", 401);
+  const days = Number(c.req.query("days") ?? 2);
+  const since = Date.now() - days * 24 * 3600 * 1000;
+  return c.json({
+    leads: allLeads(),
+    recentMessages: recentMessages(since),
+  });
+});
 
 // LIFFフォーム(来店予約 / 買取査定): /liff/* と /api/*
 app.route("/", liffRoutes);
@@ -97,11 +109,13 @@ async function handleEvent(event: WebhookEvent): Promise<void> {
       if (userId) {
         addTag(userId, "booking_requested");
         upsertLead(userId, { stage: "booking_requested" });
+        appendMessage({ at: new Date().toISOString(), lineUserId: userId, kind: "booking", text: t });
       }
       await notifyOwner(`🔔 来店予約リクエスト\n${t}\nLINE公式アカウントのチャットから確定連絡をしてください(30分以内目標)`);
       return reply(event.replyToken, bookingReceivedMessages(t));
     }
-    // 自由文もリードの可能性が高いのでオーナーに転送
+    // 自由文もリードの可能性が高いのでオーナーに転送 + 記録(返信漏れチェック用)
+    if (userId) appendMessage({ at: new Date().toISOString(), lineUserId: userId, kind: "text", text: t });
     await notifyOwner(`💬 お客様からメッセージ\n「${t}」\nチャットから返信してください(30分以内目標)`);
     return reply(event.replyToken, fallbackMessages());
   }

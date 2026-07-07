@@ -51,3 +51,39 @@ export function addTag(lineUserId: string, tag: string): void {
 export function allLeads(): Lead[] {
   return Object.values(load().leads);
 }
+
+// --- 受信メッセージログ(data/messages.json) ---
+// 毎日の「要対応リスト」(返信漏れ防止)の材料。直近500件だけ保持する。
+export type InboundMessage = {
+  at: string;
+  lineUserId: string;
+  kind: "text" | "booking" | "postback";
+  text: string;
+};
+
+const MSG_FILE = path.join(REPO_ROOT, "data", "messages.json");
+
+export function appendMessage(msg: InboundMessage): void {
+  let list: InboundMessage[] = [];
+  if (existsSync(MSG_FILE)) {
+    try {
+      list = JSON.parse(readFileSync(MSG_FILE, "utf8"));
+    } catch {
+      list = [];
+    }
+  }
+  list.push(msg);
+  if (list.length > 500) list = list.slice(-500);
+  mkdirSync(path.dirname(MSG_FILE), { recursive: true });
+  writeFileSync(MSG_FILE, JSON.stringify(list, null, 2), "utf8");
+}
+
+export function recentMessages(sinceMs: number): InboundMessage[] {
+  if (!existsSync(MSG_FILE)) return [];
+  try {
+    const list: InboundMessage[] = JSON.parse(readFileSync(MSG_FILE, "utf8"));
+    return list.filter((m) => Date.parse(m.at) >= sinceMs);
+  } catch {
+    return [];
+  }
+}
