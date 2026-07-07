@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>店舗まるごとDXパック | 24時間働くAI営業部長</title>
+<style>
+  :root{
+    --navy:#0E2A47; --navy-deep:#081C31; --gold:#E8B84B; --ink:#1a2233;
+    --sub:#5b6678; --bg:#f7f8fa; --line:#06C755;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:"Noto Sans JP","Yu Gothic UI","Hiragino Sans",Meiryo,sans-serif;color:var(--ink);background:var(--bg);line-height:1.7;}
+  .wrap{max-width:720px;margin:0 auto;padding:0 20px;}
+  /* hero */
+  .hero{background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%);color:#fff;padding:56px 0 48px;}
+  .hero .kicker{color:var(--gold);font-weight:700;letter-spacing:.12em;font-size:14px;}
+  .hero h1{font-size:34px;font-weight:900;line-height:1.35;margin:10px 0 14px;}
+  .hero h1 em{font-style:normal;color:var(--gold);}
+  .hero p{color:#c9d2de;font-size:15px;}
+  .hero .badge{display:inline-block;background:rgba(232,184,75,.15);border:1px solid var(--gold);color:var(--gold);
+    border-radius:999px;padding:4px 14px;font-size:12px;font-weight:700;margin-top:16px;}
+  /* sections */
+  section{padding:44px 0;}
+  h2{font-size:22px;font-weight:900;margin-bottom:6px;}
+  h2 .bar{display:block;width:56px;height:6px;background:var(--gold);border-radius:3px;margin-bottom:12px;}
+  .lead{color:var(--sub);font-size:14px;margin-bottom:22px;}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .card{background:#fff;border-radius:14px;padding:18px 16px;box-shadow:0 4px 16px rgba(14,42,71,.07);}
+  .card .ico{font-size:26px;}
+  .card h3{font-size:15px;font-weight:800;margin:6px 0 4px;}
+  .card p{font-size:12.5px;color:var(--sub);}
+  /* roi */
+  .roi{background:var(--navy);color:#fff;border-radius:18px;padding:26px 22px;}
+  .roi h2{color:#fff;}
+  .roi label{display:block;font-size:13px;color:#c9d2de;margin:14px 0 6px;font-weight:700;}
+  .roi input[type=range]{width:100%;accent-color:var(--gold);}
+  .roi .val{color:var(--gold);font-weight:900;font-variant-numeric:tabular-nums;}
+  .roi .result{background:rgba(232,184,75,.12);border:1px solid rgba(232,184,75,.5);border-radius:12px;
+    padding:16px;margin-top:20px;text-align:center;}
+  .roi .result .big{font-size:30px;font-weight:900;color:var(--gold);font-variant-numeric:tabular-nums;}
+  .roi .result .note{font-size:11.5px;color:#c9d2de;margin-top:6px;}
+  /* price */
+  .price-box{background:#fff;border-radius:16px;padding:22px;box-shadow:0 4px 16px rgba(14,42,71,.07);text-align:center;}
+  .price-box .row{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;margin:12px 0;}
+  .price-box .p{font-size:15px;}
+  .price-box .p b{font-size:30px;font-weight:900;color:var(--navy);font-variant-numeric:tabular-nums;}
+  .guarantee{display:inline-block;background:#fff4dd;border:1px solid var(--gold);color:#8a6410;border-radius:999px;
+    padding:5px 16px;font-size:12.5px;font-weight:700;margin-top:8px;}
+  /* flow */
+  .flow li{background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:10px;list-style:none;
+    box-shadow:0 3px 12px rgba(14,42,71,.06);font-size:14px;}
+  .flow b{color:var(--navy);}
+  .flow .day{display:inline-block;background:var(--navy);color:#fff;border-radius:6px;font-size:11px;
+    font-weight:800;padding:2px 8px;margin-right:8px;vertical-align:1px;}
+  /* faq */
+  .faq dt{font-weight:800;font-size:14px;margin-top:16px;}
+  .faq dt::before{content:"Q. ";color:var(--gold);font-weight:900;}
+  .faq dd{font-size:13.5px;color:var(--sub);margin-top:4px;}
+  /* cta */
+  .cta{background:linear-gradient(160deg,var(--navy) 0%,var(--navy-deep) 100%);color:#fff;text-align:center;padding:48px 0 56px;}
+  .cta h2{color:#fff;font-size:24px;}
+  .cta p{color:#c9d2de;font-size:14px;margin:10px 0 22px;}
+  .btn{display:inline-block;background:var(--gold);color:var(--navy-deep);font-weight:900;font-size:16px;
+    border-radius:999px;padding:14px 36px;text-decoration:none;box-shadow:0 8px 24px rgba(232,184,75,.35);}
+  .btn.line{background:var(--line);color:#fff;margin-left:10px;}
+  footer{padding:22px 0;text-align:center;font-size:11.5px;color:var(--sub);}
+  @media(max-width:520px){ .cards{grid-template-columns:1fr;} .hero h1{font-size:27px;} .btn.line{margin-left:0;margin-top:10px;} }
+</style>
+</head>
+<body>
+
+<div class="hero"><div class="wrap">
+  <div class="kicker">中古車店・来店型ビジネスのための</div>
+  <h1>夜中の問い合わせ、<br>今は<em>何件逃してますか？</em></h1>
+  <p>LINEのAI接客・SNS動画の自動生成・毎朝の数字レポートまで。<br>
+  「店舗まるごとDXパック」は、24時間はたらくAIの営業部長です。</p>
+  <div class="badge">大阪・寝屋川の中古車店で本番稼働中</div>
+</div></div>
+
+<section><div class="wrap">
+  <h2><span class="bar"></span>導入すると、こうなります</h2>
+  <p class="lead">ぜんぶ実際に稼働している機能です。デモはその場でお見せできます。</p>
+  <div class="cards">
+    <div class="card"><div class="ico">💬</div><h3>LINEが24時間接客</h3><p>友だち追加の瞬間に実車写真つきカードで挨拶。在庫・査定・来店予約をAIが一次対応。</p></div>
+    <div class="card"><div class="ico">🚙</div><h3>在庫カードが自動で最新</h3><p>カーセンサーの在庫と自動連動。売約した車は勝手に消えるので事故ゼロ。</p></div>
+    <div class="card"><div class="ico">📅</div><h3>来店予約はワンタップ</h3><p>お客様は「今週土曜 午前」を押すだけ。店主のLINEに即通知が届きます。</p></div>
+    <div class="card"><div class="ico">🎬</div><h3>TikTok動画を自動生成</h3><p>掲載写真から字幕・価格演出つきの縦動画が毎朝できあがる。投稿するだけ。</p></div>
+    <div class="card"><div class="ico">📊</div><h3>毎朝の数字チェッカー</h3><p>新入庫・売約・値下げを自動検知。返信漏れ・長期在庫も毎朝リストで届く。</p></div>
+    <div class="card"><div class="ico">📝</div><h3>出品文も自動で用意</h3><p>新入庫を検知したらジモティ・メルカリ・X用の出品文フルセットを自動生成。</p></div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <div class="roi">
+    <h2>💰 元が取れるか、その場で計算</h2>
+    <label>月の問い合わせ数（電話・メール・カーセンサー合計）: <span class="val" id="vInq">30</span>件</label>
+    <input type="range" id="inq" min="5" max="100" value="30">
+    <label>夜間・定休日などで返信が遅れている割合: <span class="val" id="vMiss">30</span>%</label>
+    <input type="range" id="miss" min="10" max="60" value="30">
+    <label>1台あたりの平均粗利: <span class="val" id="vProfit">8.5</span>万円</label>
+    <input type="range" id="profit" min="3" max="30" step="0.5" value="8.5">
+    <div class="result">
+      <div style="font-size:13px;color:#c9d2de;">即レス化で取りこぼしの2割を成約に変えられたら…</div>
+      <div class="big" id="gain">+1.5万円/月</div>
+      <div id="verdict" style="font-weight:800;margin-top:4px;"></div>
+      <div class="note">※ 試算式: 問い合わせ×遅延率×20%×来店率50%×粗利。効果を保証するものではありません。</div>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2><span class="bar"></span>料金</h2>
+  <div class="price-box">
+    <div class="row">
+      <div class="p">初期構築<br><b>30<span style="font-size:15px;">万円</span></b></div>
+      <div class="p">月額（保守・動画8本・レポート）<br><b>3<span style="font-size:15px;">万円/月</span></b></div>
+    </div>
+    <div>契約期間の縛りなし・いつでも解約OK</div>
+    <div class="guarantee">🛡 初月成果保証：来店予約が1件も入らなければ初月無料</div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2><span class="bar"></span>導入はたった2日</h2>
+  <ul class="flow">
+    <li><span class="day">事前</span><b>無料デモ:</b> 御社の在庫でデモ動画とLINE画面を作ってお見せします（この時点で費用ゼロ）</li>
+    <li><span class="day">Day1</span><b>接続:</b> LINE公式アカウントとAIの接続、サーバー設置（店舗の作業はログインのみ）</li>
+    <li><span class="day">Day2</span><b>カスタム:</b> 店舗カラー・ロゴ・在庫連携・動画テンプレの調整 → 使い方レクチャー30分で納品</li>
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2><span class="bar"></span>よくある質問</h2>
+  <dl class="faq">
+    <dt>パソコンが苦手でも使えますか？</dt>
+    <dd>店主さんがやることは「お客様への返事」と「できあがった動画の投稿ボタン」だけです。難しい操作はすべて自動です。</dd>
+    <dt>TikTokの投稿まで自動ですか？</dt>
+    <dd>動画の生成までが自動です。投稿はアプリの規約とアカウント保護のため、確認して投稿ボタンを押していただきます（1本2分）。</dd>
+    <dt>効果が出なかったら？</dt>
+    <dd>初月に来店予約が1件も入らなければ初月無料。また月額はいつでも解約できます。</dd>
+    <dt>中古車店以外でも使えますか？</dt>
+    <dd>「問い合わせ→来店」型なら同じ仕組みで構築できます（美容室・買取店・工務店・整体など）。</dd>
+  </dl>
+</div></section>
+
+<div class="cta"><div class="wrap">
+  <h2>まず、御社の在庫で<br>無料デモをご覧ください</h2>
+  <p>店名とカーセンサー（掲載サイト）のURLをお送りいただくだけ。<br>2営業日以内にデモ動画とLINE画面をお届けします。</p>
+  <a class="btn" href="mailto:koto.tama.yellow@gmail.com?subject=DXパック無料デモ希望&body=店名：%0Aカーセンサー等のURL：%0Aご担当者名：">📩 無料デモを依頼する</a>
+</div></div>
+
+<footer>店舗まるごとDXパック／提供: 緒方琴音（AI活用・業務自動化／Web・LP制作）</footer>
+
+<script>
+  const inq = document.getElementById("inq"), miss = document.getElementById("miss"), profit = document.getElementById("profit");
+  function calc(){
+    document.getElementById("vInq").textContent = inq.value;
+    document.getElementById("vMiss").textContent = miss.value;
+    document.getElementById("vProfit").textContent = profit.value;
+    // 取りこぼし×2割を即レスで回収→来店率50%→成約と仮定した保守的試算
+    const extraDeals = inq.value * (miss.value/100) * 0.2 * 0.5;
+    const gain = extraDeals * profit.value;
+    document.getElementById("gain").textContent = "+" + gain.toFixed(1) + "万円/月";
+    const v = document.getElementById("verdict");
+    if (gain >= 9) { v.textContent = "月額3万円の" + (gain/3).toFixed(1) + "倍リターン ✅"; v.style.color = "#7CFC9B"; }
+    else if (gain >= 3) { v.textContent = "月額分はほぼ回収ライン"; v.style.color = "#E8B84B"; }
+    else { v.textContent = "まずは無料デモで実感を"; v.style.color = "#c9d2de"; }
+  }
+  [inq, miss, profit].forEach((el) => el.addEventListener("input", calc));
+  calc();
+</script>
+</body>
+</html>
