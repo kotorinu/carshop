@@ -112,5 +112,41 @@
     "sourceNote": "カーセンサー実在庫(AU6956435334)と同期 2026-07-03",
     "heroImageUrl": "https://ccsrpcma.carsensor.net/CSphoto/bkkn/521/134/U00052521134/U00052521134_001L.JPG",
     "detailUrl": "https://www.carsensor.net/usedcar/detail/AU6956435334/index.html"
+  },
+  {
+    "id": "ホンダ-アクティバン-AU7088722825",
+    "csId": "AU7088722825",
+    "maker": "ホンダ",
+    "model": "アクティバン 660 SDX マニュアルエアコン 両席SRS",
+    "year": 2008,
+    "mileageKm": 121000,
+    "priceJpy": 258000,
+    "body": "軽自動車",
+    "color": "タフタホワイト",
+    "inspection": "2026(R08) 年10月",
+    "features": [
+      "パワステ",
+      "エアバッグ：運転席/助手席/－/－",
+      "エアコン・クーラー",
+      "スライドドア：両側(手動)"
+    ],
+    "sellingPoints": [
+      "2008年式",
+      "走行12.1万km",
+      "大阪・寝屋川で現車確認OK"
+    ],
+    "photos": [
+      "01.jpg",
+      "02.jpg",
+      "03.jpg",
+      "04.jpg",
+      "05.jpg",
+      "06.jpg",
+      "07.jpg",
+      "08.jpg",
+      "09.jpg",
+      "10.jpg"
+    ],
+    "sourceNote": "カーセンサー実在庫(AU7088722825)と同期 2026-07-07"
   }
 ]

@@ -12,9 +12,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import "dotenv/config";
+import dotenv from "dotenv";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// .env はスクリプト位置基準で読む(どのcwdから実行しても効くように。scheduled-task対策)
+dotenv.config({ path: path.join(ROOT, ".env") });
 const SNAP_DIR = path.join(ROOT, "content", "kpi", "snapshots");
 const INVENTORY_URL = process.env.INVENTORY_URL ?? "https://kotokoto-company-site.vercel.app/data/cars.json";
 const BOT_URL = process.env.BOT_URL ?? "https://carshop-line-bot-production.up.railway.app";

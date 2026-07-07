@@ -12,8 +12,29 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const CONTENT = path.join(ROOT, "content");
+// ライブ(Vercel配信・毎日cron同期)を正とし、取得失敗時のみローカルrepoにフォールバックする。
+// ローカルはgit pullを忘れると古くなる(実際に20日ズレた事故あり)ため、直接は信用しない。
+const SOURCE_URL = process.env.KOTOKOTO_CARS_URL
+  ?? "https://kotokoto-company-site.vercel.app/data/cars.json";
 const SOURCE = process.env.KOTOKOTO_CARS_JSON
   ?? "C:/Users/jupit/workspace/kotokoto-company-site/data/cars.json";
+
+async function loadSource() {
+  try {
+    const res = await fetch(SOURCE_URL, { signal: AbortSignal.timeout(10000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const cars = await res.json();
+    console.log(`在庫ソース: ライブ (${SOURCE_URL})`);
+    return cars;
+  } catch (e) {
+    if (!fs.existsSync(SOURCE)) {
+      console.error(`ライブ取得失敗(${e.message})かつローカルも見つかりません: ${SOURCE}`);
+      process.exit(1);
+    }
+    console.warn(`⚠ ライブ取得失敗(${e.message}) → ローカルにフォールバック: ${SOURCE}`);
+    return JSON.parse(fs.readFileSync(SOURCE, "utf8"));
+  }
+}
 
 function slugify(car) {
   const name = `${car.maker}-${car.name}`.toLowerCase()
@@ -71,11 +92,7 @@ function upsert(inventory, entry) {
 
 async function main() {
   const argv = process.argv.slice(2);
-  if (!fs.existsSync(SOURCE)) {
-    console.error(`実在庫が見つかりません: ${SOURCE}`);
-    process.exit(1);
-  }
-  const source = JSON.parse(fs.readFileSync(SOURCE, "utf8"));
+  const source = await loadSource();
   const onSale = source.filter((c) => !c.sold);
 
   if (argv.length === 0 || argv.includes("--list")) {
