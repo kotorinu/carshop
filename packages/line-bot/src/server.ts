@@ -1,5 +1,8 @@
+import fs from "node:fs";
+import path from "node:path";
 import { Hono } from "hono";
 import { messagingApi, validateSignature, type WebhookEvent } from "@line/bot-sdk";
+import { REPO_ROOT } from "@app/shared";
 import { upsertLead, addTag, appendMessage, recentMessages, allLeads } from "./store.js";
 import { liffRoutes } from "./liff/routes.js";
 import {
@@ -50,6 +53,38 @@ app.get("/admin/leads", (c) => {
 
 // LIFFフォーム(来店予約 / 買取査定): /liff/* と /api/*
 app.route("/", liffRoutes);
+
+// 動画配信(TikTok/Instagram投稿用の完成mp4をLINEのvideoメッセージからスマホに送るため)。
+// REPO_ROOT/data はRailway永続ボリューム(gitとは無関係に残る)。
+const VIDEOS_DIR = path.join(REPO_ROOT, "data", "videos");
+
+function safeFilename(name: string): string | null {
+  if (!/^[a-zA-Z0-9_.-]+\.(mp4|jpg)$/.test(name)) return null;
+  return name;
+}
+
+// アップロード(ADMIN_TOKEN保護)。ローカルからcurlで完成動画/プレビュー画像を送り込む。
+app.put("/admin/videos/:filename", async (c) => {
+  const token = process.env.ADMIN_TOKEN ?? "";
+  if (!token || c.req.query("token") !== token) return c.text("unauthorized", 401);
+  const filename = safeFilename(c.req.param("filename"));
+  if (!filename) return c.text("invalid filename", 400);
+  fs.mkdirSync(VIDEOS_DIR, { recursive: true });
+  const buf = Buffer.from(await c.req.arrayBuffer());
+  fs.writeFileSync(path.join(VIDEOS_DIR, filename), buf);
+  return c.json({ ok: true, url: `${new URL(c.req.url).origin}/videos/${filename}` });
+});
+
+// 配信(公開・認証なし。LINEサーバーが直接フェッチするため)。
+app.get("/videos/:filename", (c) => {
+  const filename = safeFilename(c.req.param("filename"));
+  if (!filename) return c.text("invalid filename", 400);
+  const file = path.join(VIDEOS_DIR, filename);
+  if (!fs.existsSync(file)) return c.text("not found", 404);
+  const body = fs.readFileSync(file);
+  const contentType = filename.endsWith(".jpg") ? "image/jpeg" : "video/mp4";
+  return c.body(new Uint8Array(body), 200, { "Content-Type": contentType });
+});
 
 app.post("/webhook", async (c) => {
   const body = await c.req.text();
