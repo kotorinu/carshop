@@ -76,14 +76,41 @@ app.put("/admin/videos/:filename", async (c) => {
 });
 
 // 配信(公開・認証なし。LINEサーバーが直接フェッチするため)。
+// LINEのプレイヤーはRange(部分リクエスト)で動画を取得しにくるため、206 Partial Contentに対応する
+// (これが無いとLINE上で「動画を再生できません」になる)。
 app.get("/videos/:filename", (c) => {
   const filename = safeFilename(c.req.param("filename"));
   if (!filename) return c.text("invalid filename", 400);
   const file = path.join(VIDEOS_DIR, filename);
   if (!fs.existsSync(file)) return c.text("not found", 404);
-  const body = fs.readFileSync(file);
+
   const contentType = filename.endsWith(".jpg") ? "image/jpeg" : "video/mp4";
-  return c.body(new Uint8Array(body), 200, { "Content-Type": contentType });
+  const size = fs.statSync(file).size;
+  const range = c.req.header("range");
+
+  if (!range) {
+    const body = fs.readFileSync(file);
+    return c.body(new Uint8Array(body), 200, {
+      "Content-Type": contentType,
+      "Content-Length": String(size),
+      "Accept-Ranges": "bytes",
+    });
+  }
+
+  const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+  if (!match) return c.text("invalid range", 416);
+  const start = match[1] ? Number(match[1]) : 0;
+  const end = match[2] ? Number(match[2]) : size - 1;
+  if (Number.isNaN(start) || Number.isNaN(end) || start > end || end >= size) {
+    return c.text("invalid range", 416);
+  }
+  const chunk = fs.readFileSync(file).subarray(start, end + 1);
+  return c.body(new Uint8Array(chunk), 206, {
+    "Content-Type": contentType,
+    "Content-Length": String(end - start + 1),
+    "Content-Range": `bytes ${start}-${end}/${size}`,
+    "Accept-Ranges": "bytes",
+  });
 });
 
 app.post("/webhook", async (c) => {
