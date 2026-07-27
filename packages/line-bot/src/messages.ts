@@ -224,7 +224,7 @@ export function appraisalMessages(): messagingApi.Message[] {
                 { type: "text", text: "3️⃣ 車の写真3枚(前・後ろ・メーター)", size: "sm", wrap: true },
               ],
             },
-            { type: "text", text: "当日中に概算をお返しします。出張査定もOKです。", size: "xs", color: "#8b91a0", wrap: true },
+            { type: "text", text: "当日中に概算をお返しします。金額に納得いただいてから、寝屋川の店舗にお持ち込みください。", size: "xs", color: "#8b91a0", wrap: true },
           ],
         },
         ...(LIFF_APPRAISAL
@@ -267,7 +267,7 @@ export function bookingMessages(): messagingApi.Message[] {
             ...(LIFF_BOOKING
               ? [{
                   type: "button" as const, style: "primary" as const, color: SHOP.navy, height: "sm" as const,
-                  action: { type: "uri" as const, label: "予約フォーム(30秒)", uri: LIFF_BOOKING },
+                  action: { type: "uri" as const, label: "空き状況を見て予約", uri: LIFF_BOOKING },
                 }]
               : []),
             {

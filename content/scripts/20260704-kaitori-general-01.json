@@ -12,7 +12,7 @@
     { "index": 1, "startSec": 1.5, "endSec": 3.8, "narration": "過走行も、年式が古くても、まず見せてください。", "caption": "過走行・低年式 【あきらめないで】", "visualType": "carPhoto", "photoRef": "02.jpg", "interrupt": "panLeft" },
     { "index": 2, "startSec": 3.8, "endSec": 6.4, "narration": "販売まで自社でやるので、中間マージンを乗せません。", "caption": "自社販売だから【中間マージンなし】", "visualType": "carPhoto", "photoRef": "03.jpg", "interrupt": "punch" },
     { "index": 3, "startSec": 6.4, "endSec": 9.4, "narration": "査定はLINEに写真を3枚送るだけ。", "caption": "LINEに写真【3枚】送るだけ", "visualType": "textCard", "bigText": "写真3枚で\n概算査定", "interrupt": "colorShift" },
-    { "index": 4, "startSec": 9.4, "endSec": 12.0, "narration": "概算はLINEだけで分かります。お持ち込みは、金額に納得してからで大丈夫です。", "caption": "まず写真だけでOK\n【納得してから持込】", "visualType": "carPhoto", "photoRef": "05.jpg", "interrupt": "panRight" },
+    { "index": 4, "startSec": 9.4, "endSec": 12.0, "narration": "概算はLINEだけで分かります。お持ち込みは、金額に納得してからで大丈夫です。", "caption": "まず【写真だけ】でOK", "visualType": "carPhoto", "photoRef": "05.jpg", "interrupt": "panRight" },
     { "index": 5, "startSec": 12.0, "endSec": 14.2, "narration": "売るか決める前の「いくらになる?」だけでも歓迎です。", "caption": "「いくらになる?」だけでOK", "visualType": "carPhoto", "photoRef": "06.jpg", "interrupt": "punch" },
     { "index": 6, "startSec": 14.2, "endSec": 18.0, "narration": "無料査定は、プロフのLINEからどうぞ。", "caption": "LINEで無料査定", "visualType": "lineCta", "interrupt": "cut" }
   ],
