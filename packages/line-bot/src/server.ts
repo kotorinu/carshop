@@ -35,9 +35,22 @@ const channelAccessToken = process.env.LINE_CHANNEL_ACCESS_TOKEN ?? "";
 
 const client = new messagingApi.MessagingApiClient({ channelAccessToken });
 
+const STARTED_AT = new Date().toISOString();
+
 export const app = new Hono();
 
 app.get("/", (c) => c.text("line-bot ok"));
+
+// デプロイ確認用。Railwayが注入するコミットSHAを返すので、
+// push後に `curl /version` で「本当に反映されたか」を目視確認できる
+// (これが無いと、修正が本番に届いたか確かめる方法が無かった)。
+app.get("/version", (c) =>
+  c.json({
+    commit: process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) ?? "unknown",
+    deployedAt: process.env.RAILWAY_DEPLOYMENT_ID ? undefined : "local",
+    startedAt: STARTED_AT,
+  }),
+);
 
 // 数字チェッカー用の管理API(毎日のダイジェストが読む)。ADMIN_TOKENで保護。
 app.get("/admin/leads", (c) => {
