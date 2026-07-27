@@ -43,17 +43,22 @@
     "id": "alphard-240s-01",
     "maker": "トヨタ",
     "model": "アルファード 2.4 240S",
-    "year": null,
+    "year": 2008,
     "mileageKm": 149000,
     "priceJpy": 618000,
     "marketPriceJpy": null,
     "body": "ミニバン",
-    "color": null,
+    "color": "パール",
     "features": [
+      "パワステ",
+      "エアコン・クーラー",
+      "キーレス",
+      "パワーウインドウ",
       "社外ホイール"
     ],
     "sellingPoints": [
-      "支払総額61.8万円のアルファード",
+      "2008年式・7人乗りのアルファード",
+      "支払総額61.8万円",
       "大阪・寝屋川で現車確認OK"
     ],
     "photos": [
@@ -67,7 +72,8 @@
     "sourceNote": "カーセンサー掲載の実在庫(AU6798877084相当)と同期",
     "csId": "AU6798877084",
     "heroImageUrl": "https://ccsrpcma.carsensor.net/CSphoto/bkkn/584/485/U00051584485/U00051584485_003L.JPG",
-    "detailUrl": "https://www.carsensor.net/usedcar/detail/AU6798877084/index.html"
+    "detailUrl": "https://www.carsensor.net/usedcar/detail/AU6798877084/index.html",
+    "inspection": "車検整備付"
   },
   {
     "id": "トヨタ-プリウス-AU6956435334",
