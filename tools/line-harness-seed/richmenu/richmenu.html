@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<!-- LINEリッチメニュー ハーフサイズ 2500x843。デザインは feedback_banner-design-taste 準拠:
+     1色相（ネイビー）で統一・太丸ゴシック・白文字。render.cjs でPNG書き出し。 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  .menu {
+    width: 2500px; height: 843px;
+    display: flex;
+    background: linear-gradient(160deg, #1a3a6e 0%, #122a52 55%, #0c1e3d 100%);
+    font-family: "M PLUS Rounded 1c", "Yu Gothic UI", "Yu Gothic", sans-serif;
+    color: #fff;
+  }
+  .cell {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 34px;
+    position: relative;
+  }
+  .cell + .cell::before {
+    content: "";
+    position: absolute; left: 0; top: 120px; bottom: 120px;
+    width: 2px;
+    background: rgba(255,255,255,.22);
+  }
+  .icon {
+    width: 240px; height: 240px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.12);
+    border: 5px solid rgba(255,255,255,.55);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon svg { width: 130px; height: 130px; stroke: #fff; fill: none; stroke-width: 5.5; stroke-linecap: round; stroke-linejoin: round; }
+  .label {
+    font-size: 104px; font-weight: 800; letter-spacing: .04em;
+    text-shadow: 0 4px 14px rgba(0,0,0,.35);
+  }
+  .sub {
+    font-size: 42px; font-weight: 700;
+    color: rgba(255,255,255,.78);
+    letter-spacing: .1em;
+  }
+</style>
+</head>
+<body>
+<div class="menu">
+  <div class="cell">
+    <div class="icon">
+      <!-- 電卓（査定） -->
+      <svg viewBox="0 0 64 64">
+        <rect x="14" y="8" width="36" height="48" rx="5"/>
+        <rect x="21" y="15" width="22" height="10" rx="2"/>
+        <line x1="23" y1="34" x2="23" y2="34"/><line x1="32" y1="34" x2="32" y2="34"/><line x1="41" y1="34" x2="41" y2="34"/>
+        <line x1="23" y1="44" x2="23" y2="44"/><line x1="32" y1="44" x2="32" y2="44"/><line x1="41" y1="44" x2="41" y2="44"/>
+      </svg>
+    </div>
+    <div class="label">無料査定</div>
+    <div class="sub">LINEで30秒</div>
+  </div>
+  <div class="cell">
+    <div class="icon">
+      <!-- クルマ（在庫） -->
+      <svg viewBox="0 0 64 64">
+        <path d="M10 38 L14 26 Q15 22 20 22 L44 22 Q49 22 50 26 L54 38"/>
+        <path d="M8 38 H56 Q58 38 58 41 V46 Q58 48 56 48 H8 Q6 48 6 46 V41 Q6 38 8 38 Z"/>
+        <circle cx="18" cy="48" r="6"/>
+        <circle cx="46" cy="48" r="6"/>
+      </svg>
+    </div>
+    <div class="label">在庫を見る</div>
+    <div class="sub">最新ラインナップ</div>
+  </div>
+  <div class="cell">
+    <div class="icon">
+      <!-- カレンダー（予約） -->
+      <svg viewBox="0 0 64 64">
+        <rect x="10" y="14" width="44" height="42" rx="5"/>
+        <line x1="10" y1="26" x2="54" y2="26"/>
+        <line x1="22" y1="8" x2="22" y2="18"/>
+        <line x1="42" y1="8" x2="42" y2="18"/>
+        <path d="M24 40 L30 46 L42 34"/>
+      </svg>
+    </div>
+    <div class="label">来店予約</div>
+    <div class="sub">カンタン受付</div>
+  </div>
+</div>
+</body>
+</html>

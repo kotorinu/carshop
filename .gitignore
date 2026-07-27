@@ -15,3 +15,4 @@ content/renders/
 
 !**/.gitkeep
 video/build/
+tools/line-harness-seed/.notify-state.json

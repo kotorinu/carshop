@@ -2,7 +2,7 @@
 // carshop の content/inventory/cars.json に取り込み、実車写真もダウンロードする。
 //
 //   node video/sync-inventory.mjs --list           # 実在庫の一覧(選ぶ用)
-//   node video/sync-inventory.mjs <csId|キーワード>  # 1台取り込み(写真10枚まで)
+//   node video/sync-inventory.mjs <csId|キーワード>  # 1台取り込み(写真20枚まで=実質全部)
 //   node video/sync-inventory.mjs --all            # 販売中を全台取り込み(写真は各6枚)
 //
 // 取り込み後は台本を書いて `npm run make:video -- <videoId>` で動画化。
@@ -116,7 +116,7 @@ async function main() {
     console.error("該当する車が見つかりません。--list で一覧を確認してください。");
     process.exit(1);
   }
-  const maxPhotos = argv.includes("--all") ? 6 : 10;
+  const maxPhotos = argv.includes("--all") ? 6 : 20;
   for (const car of targets) {
     const entry = toInventory(car);
     const n = await downloadPhotos(car, entry, maxPhotos);

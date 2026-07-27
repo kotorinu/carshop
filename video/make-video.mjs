@@ -222,11 +222,11 @@ function buildTweens(scene, i, ctx) {
     const origin = ["50% 42%", "38% 55%", "62% 45%"][i % 3];
     t.push(`tl.set("${id} .photo",{transformOrigin:"${origin}"},${s2(start)});`);
     if (kind === "punch") {
-      t.push(`tl.fromTo("${id} .photo",{scale:1.18},{scale:1.03,duration:${s2(dur)},ease:"expo.out"},${s2(start)});`);
+      t.push(`tl.fromTo("${id} .photo",{scale:1.09},{scale:1.01,duration:${s2(dur)},ease:"expo.out"},${s2(start)});`);
       t.push(`tl.fromTo("${id} .flash",{opacity:0.85},{opacity:0,duration:0.3,ease:"power2.out"},${s2(start)});`);
     } else {
-      const dir = kind === "panLeft" ? [34, -34] : [-34, 34];
-      t.push(`tl.fromTo("${id} .photo",{scale:1.1,x:${dir[0]}},{scale:1.1,x:${dir[1]},duration:${s2(dur)},ease:"none"},${s2(start)});`);
+      const dir = kind === "panLeft" ? [18, -18] : [-18, 18];
+      t.push(`tl.fromTo("${id} .photo",{scale:1.04,x:${dir[0]}},{scale:1.04,x:${dir[1]},duration:${s2(dur)},ease:"none"},${s2(start)});`);
     }
     if (scene.interrupt === "colorShift") {
       t.push(`tl.fromTo("${id} .flash",{opacity:0.7},{opacity:0,duration:0.45,ease:"power2.out"},${s2(inAt)});`);
