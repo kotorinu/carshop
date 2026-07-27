@@ -1,0 +1,13 @@
+name = "carshop-videos"
+main = "index.js"
+compatibility_date = "2026-07-01"
+workers_dev = true
+account_id = "5ce62e8f19a2ffc522201cc1c80e4fa7"
+
+# 動画・プレビュー画像の保管先(エグレス無料・10GBまで無料)
+[[r2_buckets]]
+binding = "VIDEOS"
+bucket_name = "carshop-videos"
+
+# ADMIN_TOKEN は wrangler secret put で登録する(設定ファイルに秘密を残さない):
+#   npx wrangler secret put ADMIN_TOKEN --config tools/video-host/wrangler.toml
