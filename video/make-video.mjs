@@ -36,7 +36,8 @@ function esc(s) {
 }
 // 【強調】→ <em>
 function rich(s) {
-  return esc(s).replace(/【([^】]*)】/g, "<em>$1</em>");
+  // 台本が書いた改行はそのまま活かす(無いと幅任せの折返しで単語の途中が切れる)
+  return esc(s).replace(/【([^】]*)】/g, "<em>$1</em>").replace(/\\n|\n/g, "<br>");
 }
 
 function listScripts() {
