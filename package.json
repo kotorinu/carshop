@@ -20,11 +20,16 @@
     "sync:inventory": "node video/sync-inventory.mjs",
     "kpi": "node video/kpi-digest.mjs",
     "apply": "node tools/sales-apply/cli.mjs",
-    "apply:doctor": "node tools/sales-apply/cli.mjs doctor"
+    "apply:doctor": "node tools/sales-apply/cli.mjs doctor",
+    "apply:test": "node tools/sales-apply/test/unit.mjs",
+    "apply:test:e2e": "node tools/sales-apply/test/run.mjs",
+    "apply:build": "node tools/sales-apply/build.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",
     "@types/qrcode": "^1.5.6",
+    "jsdom": "^30.0.1",
+    "playwright": "^1.62.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   },

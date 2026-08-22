@@ -135,15 +135,28 @@ export function highlight(el) {
 
 /* ---------- 一覧ページから案件を拾う汎用エンジン ---------- */
 
-/** リンクから見て、案件1件分のまとまりになっている親要素を探す */
-function cardOf(link) {
+/**
+ * リンクから見て「案件1件分」のまとまりになっている親要素を探す。
+ *
+ * 文字数だけで親をたどると、情報の少ないカードのときに一覧全体を掴んでしまい、
+ * 全案件が1件目と同じ内容として読み取られる（実際にこのバグがあった）。
+ * なので「他の案件のリンクを含まない、いちばん外側の親」を採る。
+ */
+function cardOf(link, pattern) {
+  const idOf = (href) => { const m = pattern.exec(href); return m ? m[1] : null; };
+  const myId = idOf(link.href);
   let el = link;
-  for (let i = 0; i < 6 && el.parentElement; i++) {
+  let best = link.parentElement || link;
+  for (let i = 0; i < 8 && el.parentElement; i++) {
     el = el.parentElement;
-    const t = text(el);
-    if (t.length > 80) return el;
+    const ids = new Set(
+      [...el.querySelectorAll('a[href]')].map((a) => idOf(a.href)).filter(Boolean),
+    );
+    // 別の案件まで含む親まで来たら、その手前が1件分
+    if (ids.size > 1 || (ids.size === 1 && !ids.has(myId))) break;
+    best = el;
   }
-  return link.parentElement || link;
+  return best;
 }
 
 const num = (s) => {
@@ -165,9 +178,14 @@ export function scrapeListGeneric(detailPattern, opt = {}) {
     const id = m[1] || href;
     if (seen.has(id)) continue;
 
-    const card = cardOf(a);
+    // ヘッダー・ナビ・フッターの中のリンクは案件ではない
+    if (a.closest('header, nav, footer')) continue;
+
+    const card = cardOf(a, detailPattern);
     const cardText = text(card);
-    if (cardText.length < 40) continue;   // ヘッダーのリンク等を除外
+    // 情報が少ないカードでも落とさない（本文は詳細ページで取り直すため）。
+    // 中身が空のリンクだけ除外する。
+    if (cardText.length < 2) continue;
     seen.add(id);
 
     const title = text(q(card, ['h2 a', 'h3 a', 'h2', 'h3', '[class*="title"]'])) || text(a);
@@ -221,8 +239,12 @@ function buildDetail(root, hints, url, useVisibility) {
   const budget = text(q(root, hints.budget || []))
     || (page.match(/(?:予算|報酬|固定報酬|時間単価|給与|時給|月給)[^\n]{0,40}/) || [])[0] || '';
   const applicants = num((page.match(/(?:提案|応募)[^\n]{0,6}?(\d+)\s*(?:人|件)/) || [])[1]);
+  // ホスト名やポート番号からidを拾わないよう、パス以降だけを見る
+  let tail = url;
+  try { const u = new URL(url); tail = u.pathname + u.search; } catch { /* 相対URLならそのまま */ }
   return {
-    id: (url.match(/[?&]jk=([\w-]+)/) || url.match(/(\d{4,})/) || [])[1] || url,
+    // パスの最後の数字を採る（/2024/jobs/5 のような形で年を拾わないため）
+    id: (tail.match(/[?&]v?jk=([\w-]+)/) || tail.match(/(\d+)(?!.*\d)/) || [])[1] || tail,
     url: url.split('#')[0],
     title: title.replace(/\s+/g, ' ').trim(),
     description,

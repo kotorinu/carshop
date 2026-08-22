@@ -23,3 +23,7 @@ tools/sales-apply/profile/profile.local.json
 tools/sales-apply/drafts/*
 !tools/sales-apply/drafts/.gitkeep
 tools/sales-apply/data/
+
+# 営業応募ツールのビルド成果物
+tools/sales-apply/dist/
+tools/sales-apply/test/.testext/

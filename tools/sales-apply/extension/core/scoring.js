@@ -128,6 +128,8 @@ const item = (key, label, status, detail, points, ask) => ({ key, label, status,
  * status: 'ok'（推奨条件に合う）/ 'ng'（避けるべき）/ 'warn'（注意）/ 'unknown'（募集文に書いていない）
  */
 export function evaluateJob(job, profile = {}) {
+  // raw  … 元の文。「新規開拓はありません」はアポ譲渡型の証拠なので、こちらで判定する
+  // text … 打ち消しを消した文。「新規開拓」を自己獲得型と誤判定しないため、こちらで判定する
   const raw = `${job.title || ''}\n${job.description || ''}\n${job.budget || ''}`;
   const text = stripNegated(raw);
   const checklist = [];
@@ -170,11 +172,13 @@ export function evaluateJob(job, profile = {}) {
   }
 
   // 4. アポイント（最重要）
-  if (RE.handover.test(text) && !RE.selfGet.test(text)) {
+  const isHandover = RE.handover.test(raw);
+  const isSelfGet = RE.selfGet.test(text);
+  if (isHandover && !isSelfGet) {
     checklist.push(item('appointment', 'アポイント', 'ok', '譲渡型（会社が集客してくれる）', 22));
-  } else if (RE.selfGet.test(text) && !RE.handover.test(text)) {
+  } else if (isSelfGet && !isHandover) {
     checklist.push(item('appointment', 'アポイント', 'ng', '自己獲得型（アポ取りから自分・今の段階では難易度が高い）', -30));
-  } else if (RE.handover.test(text) && RE.selfGet.test(text)) {
+  } else if (isHandover && isSelfGet) {
     checklist.push(item('appointment', 'アポイント', 'warn', '譲渡＋自己獲得の両方（譲渡が主ならむしろ最上級）', 8,
       'アポイントはどのような方法で獲得されていますか？'));
   } else {
