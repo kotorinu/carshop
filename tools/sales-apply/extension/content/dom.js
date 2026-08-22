@@ -190,33 +190,59 @@ export function scrapeListGeneric(detailPattern, opt = {}) {
   return jobs;
 }
 
-/** 詳細ページから1件分を拾う汎用エンジン */
-export function scrapeDetailGeneric(hints = {}) {
-  const title = text(q(document, hints.title || []) || document.querySelector('h1')) || document.title;
+/**
+ * 本文（募集文）のブロックを選ぶ。
+ * ページ全体(body)を掴むとヘッダー・広告まで材料に混ざるので上限を掛ける。
+ * @param {Document|Element} root
+ * @param {boolean} useVisibility 表示状態で絞るか（fetchしたHTMLでは使えない）
+ */
+function pickDescription(root, hints, useVisibility) {
+  const hinted = q(root, hints.description || []);
+  if (hinted && text(hinted).length > 120) return text(hinted);
 
-  // 本文は「ページ全体ではないが、いちばん中身の詰まったブロック」を採る。
-  // ページ全体(body)を掴むとヘッダー・広告まで応募文の材料に混ざるので上限を掛ける。
-  const bodyLen = text(document.body).length || 1;
+  const body = root.body || root;
+  const bodyLen = text(body).length || 1;
   let best = null; let bestLen = 0;
-  for (const el of document.querySelectorAll('section, article, main, div[class*="detail"], div[class*="description"], div[class*="body"], div[class*="content"]')) {
-    if (!isVisible(el)) continue;
+  for (const el of root.querySelectorAll('section, article, main, div[class*="detail"], div[class*="description"], div[class*="body"], div[class*="content"], div[id*="Description"]')) {
+    if (useVisibility && !isVisible(el)) continue;
     const t = text(el);
     if (t.length < 200 || t.length > bodyLen * 0.8) continue;
     if (t.length > bestLen) { best = el; bestLen = t.length; }
   }
-  const description = text(q(document, hints.description || []) || best).slice(0, 8000);
-  const page = text(document.body);
-  const budget = text(q(document, hints.budget || []))
-    || (page.match(/(?:予算|報酬|固定報酬|時間単価)[^\n]{0,40}/) || [])[0] || '';
-  const applicants = num((page.match(/(?:提案|応募)[^\n]{0,6}?(\d+)\s*(?:人|件)/) || [])[1]);
+  return best ? text(best) : text(body);
+}
 
+/** 詳細のHTMLから案件1件分を組み立てる共通部分 */
+function buildDetail(root, hints, url, useVisibility) {
+  const title = text(q(root, hints.title || []) || root.querySelector('h1'))
+    || (root.title || '');
+  const description = pickDescription(root, hints, useVisibility).slice(0, 8000);
+  const page = text(root.body || root);
+  const budget = text(q(root, hints.budget || []))
+    || (page.match(/(?:予算|報酬|固定報酬|時間単価|給与|時給|月給)[^\n]{0,40}/) || [])[0] || '';
+  const applicants = num((page.match(/(?:提案|応募)[^\n]{0,6}?(\d+)\s*(?:人|件)/) || [])[1]);
   return {
-    id: (location.pathname.match(/(\d{4,})/) || [])[1] || location.pathname,
-    url: location.href.split('?')[0],
+    id: (url.match(/[?&]jk=([\w-]+)/) || url.match(/(\d{4,})/) || [])[1] || url,
+    url: url.split('#')[0],
     title: title.replace(/\s+/g, ' ').trim(),
     description,
     budget: budget.trim(),
     applicants,
     clientVerified: /本人確認済|認証済/.test(page),
   };
+}
+
+/** いま開いているページから案件1件分を拾う */
+export function scrapeDetailGeneric(hints = {}) {
+  return buildDetail(document, hints, location.href, true);
+}
+
+/**
+ * fetchしてきたHTML文字列から案件1件分を拾う。
+ * 一覧のカードだけでは「無形かどうか」「アポは譲渡型か」が分からず点数が上がらないので、
+ * 詳細ページの本文まで取りに行くために使う。
+ */
+export function scrapeDetailFromHtml(html, hints, url) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  return buildDetail(doc, hints, url, false);
 }

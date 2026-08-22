@@ -7,7 +7,11 @@
 export default {
   id: 'anotherworks',
   name: '複業クラウド',
-  searchUrls: ['https://aw-anotherworks.com/'],
+  // ⚠️ 案件検索ページのURLが未確認（推測したURLはDNSごと存在しなかった）ため、
+  //    自動巡回の対象にしていない。複業クラウドで探すときは、自分でログインして
+  //    案件検索ページを開き、右下パネルの「① 案件を集める」を押せば同じことができる。
+  //    正しいURLが分かったらここに入れる。それだけで自動巡回に加わる。
+  searchUrls: [],
   matches: (loc) => /anotherworks/.test(loc.hostname),
   detailPattern: /\/(?:jobs?|projects?|offers?|recruits?)\/([\w-]{4,})/,
   isListPage: (loc) => /(job|project|offer|search|recruit)/.test(loc.pathname) && !/\/\d{3,}/.test(loc.pathname),

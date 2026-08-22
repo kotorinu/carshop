@@ -15,7 +15,9 @@ export default {
     search('インサイドセールス 業務委託 副業'),
   ],
   matches: (loc) => /(^|\.)indeed\.com$/.test(loc.hostname),
-  detailPattern: /[?&]jk=([a-f0-9]{8,})/,
+  detailPattern: /[?&]v?jk=([a-f0-9]{8,})/,
+  // 一覧のリンクは計測用URLなので、idから本来の詳細URLを組み立てる
+  detailUrl: (id) => `https://jp.indeed.com/viewjob?jk=${id}`,
   isListPage: (loc) => /\/jobs/.test(loc.pathname),
   isDetailPage: (loc) => /\/viewjob/.test(loc.pathname) || /[?&]vjk=/.test(loc.search),
   isFormPage: (loc) => /apply|smartapply/.test(loc.hostname + loc.pathname),

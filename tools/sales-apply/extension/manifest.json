@@ -7,7 +7,8 @@
     "storage",
     "activeTab",
     "scripting",
-    "clipboardWrite"
+    "clipboardWrite",
+    "tabs"
   ],
   "host_permissions": [
     "https://www.lancers.jp/*",
@@ -51,7 +52,8 @@
         "core/*.js",
         "content/*.js",
         "content/adapters/*.js",
-        "profile.default.json"
+        "profile.default.json",
+        "content/autocollect.js"
       ],
       "matches": [
         "https://*/*"

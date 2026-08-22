@@ -16,6 +16,7 @@ export default {
   ],
   matches: (loc) => /(^|\.)lancers\.jp$/.test(loc.hostname),
   detailPattern: /lancers\.jp\/work\/detail\/(\d+)/,
+  detailUrl: (id) => `https://www.lancers.jp/work/detail/${id}`,
   isListPage: (loc) => /\/work\/search|\/work\/?$|\/work\/category/.test(loc.pathname),
   isDetailPage: (loc) => /\/work\/detail\/\d+/.test(loc.pathname),
   isFormPage: (loc) => /propose|proposal|entry/.test(loc.pathname + loc.search),
