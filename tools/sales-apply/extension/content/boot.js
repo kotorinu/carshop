@@ -32,7 +32,18 @@
     : ad.isDetailPage(location) ? 'detail'
       : ad.isListPage(location) ? 'list' : 'other';
 
-  let profile = await store.get('profile', null);
+  /** 保存済みプロフィール → 無ければ拡張機能に同梱した初期プロフィール */
+  async function loadProfile() {
+    const saved = await store.get('profile', null);
+    if (saved && saved.displayName) return saved;
+    try {
+      const res = await fetch(u('profile.default.json'));
+      if (res.ok) return await res.json();
+    } catch { /* 同梱ファイルが無ければ未設定として扱う */ }
+    return null;
+  }
+
+  let profile = await loadProfile();
   let currentJob = null;
 
   const panel = ui.mountPanel({ buttons, onDraftEdited: (v) => saveDraft(v) });
@@ -112,7 +123,7 @@
 
   /* ---------- ②応募文を作る ---------- */
   async function compose(variant) {
-    profile = await store.get('profile', profile);
+    profile = (await loadProfile()) || profile;
     if (!profile) {
       panel.set({ message: 'プロフィール未登録です。拡張機能アイコン → 設定 から登録してください。' });
       return;

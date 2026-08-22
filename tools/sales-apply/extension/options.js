@@ -41,8 +41,15 @@ chrome.storage.local.get({ profile: null }, async ({ profile }) => {
   $('json').value = JSON.stringify(current, null, 2);
 });
 
-/** 拡張機能に同梱したサンプル（リポジトリの profile.example.json 相当） */
+/**
+ * 何も保存されていないときの初期値。拡張機能に同梱した profile.default.json を読む。
+ * これのおかげで、入れた直後から設定なしで使える。
+ */
 async function loadDefault() {
+  try {
+    const res = await fetch(chrome.runtime.getURL('profile.default.json'));
+    if (res.ok) return await res.json();
+  } catch { /* 同梱ファイルが無い場合は空で始める */ }
   return {
     displayName: '', businessSummary: '', selfIntroCore: '', location: '',
     salesExperienceLevel: 'none', canWorkDaytime: false,

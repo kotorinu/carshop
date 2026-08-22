@@ -50,7 +50,8 @@
       "resources": [
         "core/*.js",
         "content/*.js",
-        "content/adapters/*.js"
+        "content/adapters/*.js",
+        "profile.default.json"
       ],
       "matches": [
         "https://*/*"
