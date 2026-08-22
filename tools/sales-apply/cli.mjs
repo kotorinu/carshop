@@ -153,7 +153,9 @@ const commands = {
     const priv = path.join(HERE, 'profile', 'private.json');
     console.log(existsSync(priv)
       ? '\n✅ private.json あり（フォーム自動入力に使えます）'
-      : '\n⚠️  private.json なし … private.example.json をコピーして作ると、フォームの氏名・メール等も自動入力されます');
+      : '\n⚠️  private.json なし … メール・電話・住所が自動入力されません。'
+        + '\n    cp tools/sales-apply/profile/private.example.json tools/sales-apply/profile/private.json'
+        + '\n    で作って中身を埋めてください（氏名・フリガナは profile.json 側にあるので不要）');
     const n = existsSync(DRAFTS) ? readdirSync(DRAFTS).filter((f) => f.endsWith('.md')).length : 0;
     console.log(`\n📝 これまでに作った応募文: ${n}本 (${DRAFTS})\n`);
   },

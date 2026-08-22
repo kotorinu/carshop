@@ -1,6 +1,8 @@
 {
   "_readme": "応募文の材料。ここを直せば全案件の文面が変わる。個人の連絡先だけは private.json（git管理外）に置く。判断基準の正本は 案件選定ルール.md。",
   "displayName": "緒方 琴音",
+  "fullName": "緒方 琴音",
+  "fullNameKana": "オガタコトネ",
   "businessSummary": "大阪・寝屋川の中古車販売店の集客とDX（LINE・SNS・自動化）",
   "selfIntroCore": "自分の店のLINE集客システムを一から作って、いまも毎日回しています。作って終わりではなく、数字を見て直すところまで自分でやっています。",
   "location": "大阪府",
@@ -61,7 +63,7 @@
       ]
     }
   ],
-  "salesExperience": "?（営業経験があるなら1〜3行で。店頭接客・法人商談・電話対応など何でも。あれば salesExperienceLevel を some か pro に変える）",
+  "salesExperience": "営業代行としての実務経験はなし（未経験）。ただし自分の事業では、集客・問い合わせ対応・商品設計・価格提示まで自分でやっている。",
   "ngIndustries": [
     "投資",
     "情報商材",
@@ -84,15 +86,14 @@
     "Googleスプレッドシート",
     "Canva",
     "LINE公式アカウント",
-    "Slack",
-    "?（Zoom・Notion など他に使えるもの）"
+    "Slack"
   ],
   "accounts": {
-    "anotherworks": "?（複業クラウド。アカウント有無・登録済みか）",
-    "lancers": "?（アカウント有無・本人確認済みか）",
-    "indeed": "?",
+    "anotherworks": "登録済み・応募可",
+    "lancers": "登録済み・本人確認済み",
+    "indeed": "登録済み・応募可",
     "crowdworks": "使用禁止（実践活動ルール）",
-    "other": "?"
+    "other": "未定（必要になったら追加）"
   },
   "canWorkDaytime": false,
   "_canWorkDaytimeNote": "日中は本業があるためBtoB案件は原則NG（案件選定ルール.md）。退職して日中に動けるようになったら true にする。",
