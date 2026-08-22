@@ -92,7 +92,7 @@ check('ボタンが「始めています…」で固まらない', !stuck, stuck
 
 // 巡回の完了を待つ
 let crawl = null;
-for (let i = 0; i < 90; i++) {
+for (let i = 0; i < 180; i++) {
   crawl = await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ crawl: {} }, (o) => r(o.crawl))));
   if (crawl && !crawl.running && crawl.finishedAt) break;
   await sleep(1000);
@@ -186,6 +186,83 @@ check('電話が入る', filled.tel === '08042934580', filled.tel);
 check('住所が入る', filled.address.includes('東雪谷'), filled.address);
 check('★送信ボタンは押されていない（最重要）', filled.sent === '', `sent=${filled.sent}`);
 
+console.log('\n=== ⑦の2 開いたタブに応募文が「もう出来ている」か ===');
+{
+  const jobTabs = ctx.pages().filter((p) => /\/job\/\d+/.test(p.url()));
+  check('合格案件のタブが開いている', jobTabs.length > 0, `${jobTabs.length}枚`);
+  let ready = 0;
+  for (const t of jobTabs) {
+    const v = await t.evaluate(() => {
+      const host = document.getElementById('sales-apply-panel');
+      if (!host) return null;
+      const ta = host.shadowRoot.querySelector('textarea');
+      return ta ? ta.value : '';
+    }).catch(() => null);
+    if (v && v.length > 300) ready++;
+  }
+  check('★開いた全タブで応募文が出来上がっている', ready === jobTabs.length,
+    `${ready}/${jobTabs.length} 枚`);
+}
+
+console.log('\n=== ⑦の3 募集要項の指示を守っているか ===');
+{
+  // #13: 指定項目5つ＋合言葉
+  const t13 = await ctx.newPage();
+  await t13.goto(`http://localhost:${PORT}/job/13`);
+  await t13.waitForTimeout(2500);
+  const d13 = await t13.evaluate(() => document.getElementById('sales-apply-panel').shadowRoot.querySelector('textarea').value);
+  check('★合言葉が冒頭にある', d13.startsWith('オンライン商談希望'), d13.slice(0, 30));
+  for (const label of ['お名前', '稼働可能時間', '営業経験の有無', '志望動機', '通信環境']) {
+    check(`★指定項目「${label}」に答えている`, d13.includes(`${label}：`), '');
+  }
+  check('指定項目の答えが空でない', !d13.includes('：\n') && !d13.includes('要記入'), '');
+  check('会社名に触れている', d13.includes('株式会社ライフデザイン'));
+  check('会社の理念の言葉を借りている', d13.includes('一人ひとりの人生の選択肢を増やす'));
+  check('パネルに読み取り結果が出る', await t13.evaluate(() =>
+    document.getElementById('sales-apply-panel').shadowRoot.textContent.includes('募集要項から読み取ったこと')));
+
+  // #14: 400文字以内の指定
+  const t14 = await ctx.newPage();
+  await t14.goto(`http://localhost:${PORT}/job/14`);
+  await t14.waitForTimeout(2500);
+  const d14 = await t14.evaluate(() => document.getElementById('sales-apply-panel').shadowRoot.querySelector('textarea').value);
+  const width14 = [...d14].reduce((n, c) => n + (/[\x00-\x7F]/.test(c) ? 0.5 : 1), 0);
+  check('★400文字以内の指定を守っている', width14 <= 400, `${Math.round(width14)}文字相当`);
+  check('文字数を削っても熱量は残っている', /営業という|営業力|決めていただく/.test(d14), d14.slice(0, 60));
+  check('文字数を削っても会社の言葉に触れている', d14.includes('続けられる人を増やす') || d14.includes('合同会社ヘルスラボ'));
+
+  // #15: 答えられない指定項目（年齢・資格）
+  const t15 = await ctx.newPage();
+  await t15.goto(`http://localhost:${PORT}/job/15`);
+  await t15.waitForTimeout(2500);
+  const d15 = await t15.evaluate(() => document.getElementById('sales-apply-panel').shadowRoot.querySelector('textarea').value);
+  check('★答えられない項目は【要記入】として残る', d15.includes('要記入'), d15.slice(0, 80));
+  check('答えられない項目が警告に出る', await t15.evaluate(() =>
+    document.getElementById('sales-apply-panel').shadowRoot.textContent.includes('答えられなかった項目')
+    || document.getElementById('sales-apply-panel').shadowRoot.textContent.includes('未記入')));
+  check('答えられる項目（お名前）は埋まっている', d15.includes('お名前：緒方 琴音'));
+
+  await t13.close(); await t14.close(); await t15.close();
+}
+
+console.log('\n=== ⑦の4 応募文の品質 ===');
+{
+  const quality = draft;
+  const paras = quality.split('\n\n');
+  check('段落に分かれている（読みやすさ）', paras.length >= 5, `${paras.length}段落`);
+  check('長すぎない（2000文字未満）', quality.length < 2000, `${quality.length}文字`);
+  check('短すぎない（400文字超）', quality.length > 400, `${quality.length}文字`);
+  check('「！」が2つ以下', (quality.match(/[!！]/g) || []).length <= 2);
+  check('「させていただ」が2回以下', (quality.match(/させていただ/g) || []).length <= 2,
+    String((quality.match(/させていただ/g) || []).length));
+  check('宛先の取り違えが無い（他社名が混ざらない）', !quality.includes('株式会社ライフデザイン'));
+  check('嘘の実績が入っていない（LINE bot構築を名乗らない）', !quality.includes('AI接客bot'));
+  check('嘘の実績が入っていない（DXパックを売った実績を名乗らない）', !quality.includes('DXパック'));
+  check('リモート運営を名乗っていない', !quality.includes('リモートで運営'));
+  check('締めの挨拶がある', /お願いいたします/.test(quality));
+  check('自分の言葉（一人称）で書かれている', /自分|私/.test(quality));
+}
+
 console.log('\n=== ⑧ 別の言い回しで作り直す ===');
 const first = draft;
 await detail.evaluate(() => {
@@ -197,6 +274,25 @@ await detail.waitForTimeout(1200);
 const second = await detail.evaluate(() => document.getElementById('sales-apply-panel').shadowRoot.querySelector('textarea').value);
 check('「別の言い回しで」で文面が変わる', second !== first && second.length > 300);
 check('作り直しても【要記入】は出ない', !second.includes('要記入'));
+
+console.log('\n=== ⑧の2 媒体ごとのHTMLの違いに耐えるか ===');
+{
+  const bySite = {};
+  for (const j of JOBS) (bySite[j.site || 'A'] = bySite[j.site || 'A'] || []).push(j.id);
+  const collected = jobs.map((j) => Number(String(j.id)));
+  for (const [site, ids] of Object.entries(bySite)) {
+    const wantPass = ids.filter((id) => JOBS.find((j) => j.id === id).expect === 'pass');
+    const gotPass = wantPass.filter((id) => {
+      const f = jobs.find((x) => Number(String(x.id)) === id);
+      return f && f.must && f.must.passed;
+    });
+    const layout = { A: 'divのカード', B: 'テーブル', C: 'リンクだけの短いカード', D: '入れ子が深い＋ヘッダーに罠' }[site];
+    check(`媒体${site}（${layout}）から案件を読み取れる`, gotPass.length === wantPass.length,
+      `合格すべき ${wantPass.join(',')} / 実際 ${gotPass.join(',')}`);
+  }
+  check('ヘッダーの求人リンクを案件として拾っていない',
+    collected.filter((id) => id === 15).length <= 1, `#15が${collected.filter((id) => id === 15).length}件`);
+}
 
 console.log('\n=== ⑨ 応募済みの記録（二重応募の防止）===');
 await detail.evaluate(() => {
@@ -231,7 +327,7 @@ await popup.waitForTimeout(1200);
 console.log('\n=== ⑪ 2回目の巡回で重複しない ===');
 const before = (await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ jobs: [] }, (o) => r(o.jobs))))).length;
 await popup.click('#auto');
-for (let i = 0; i < 90; i++) {
+for (let i = 0; i < 180; i++) {
   const c = await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ crawl: {} }, (o) => r(o.crawl))));
   if (c && !c.running && c.finishedAt) break;
   await sleep(1000);

@@ -17,7 +17,8 @@ export function buildTestExtension(srcDir, outDir, { port = 8787 } = {}) {
 export default {
   id: 'localtest',
   name: 'テスト求人サイト',
-  searchUrls: ['${origin}/search'],
+  // 4媒体ぶん（HTMLの作りがそれぞれ違う）を巡回する
+  searchUrls: ['${origin}/search?site=A', '${origin}/search?site=B', '${origin}/search?site=C', '${origin}/search?site=D'],
   matches: (loc) => loc.hostname === 'localhost',
   detailPattern: /\\/job\\/(\\d+)/,
   detailUrl: (id) => '${origin}/job/' + id,

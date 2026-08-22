@@ -4,18 +4,41 @@ import { JOBS } from './jobs.mjs';
 
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
-const listPage = () => `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>案件検索</title></head><body>
-<header><a href="/">テスト求人サイト</a></header>
-<main><h1>営業代行の案件</h1>
-${JOBS.map((j) => `
-  <div class="job-card">
-    <h3><a href="/job/${j.id}">${esc(j.title)}</a></h3>
-    <p class="teaser">${esc(j.teaser)}</p>
-    <p class="pay">報酬: ${esc(j.budget)}</p>
-    <p class="applicants">提案 ${j.id % 7} 人</p>
-    <p class="misc">掲載から3日 / 業務委託 / オンライン面談あり</p>
-  </div>`).join('')}
-</main></body></html>`;
+/** 媒体ごとにHTMLの作りを変える（実際のサイトの違いを再現するため） */
+const LAYOUTS = {
+  // A: divのカード（ランサーズ風）
+  A: (js) => `<main><h1>営業代行の案件</h1>${js.map((j) => `
+    <div class="job-card">
+      <h3><a href="/job/${j.id}">${esc(j.title)}</a></h3>
+      <p class="teaser">${esc(j.teaser)}</p>
+      <p class="pay">報酬: ${esc(j.budget)}</p>
+      <p class="applicants">提案 ${j.id % 7} 人</p>
+      <p class="misc">掲載から3日 / 業務委託 / オンライン面談あり</p>
+    </div>`).join('')}</main>`,
+  // B: テーブル（古いタイプの求人サイト）
+  B: (js) => `<main><h1>お仕事一覧</h1><table><tbody>${js.map((j) => `
+    <tr><td><a href="/job/${j.id}">${esc(j.title)}</a></td><td>${esc(j.budget)}</td><td>応募 ${j.id % 5} 件</td></tr>`).join('')}
+    </tbody></table></main>`,
+  // C: リンクだけの短いカード（Indeed風・情報が少ない）
+  C: (js) => `<main><h1>求人</h1><ul>${js.map((j) => `
+    <li><a href="/job/${j.id}">${esc(j.title)}</a></li>`).join('')}</ul></main>`,
+  // D: 入れ子が深く、ヘッダーにも案件リンクがある（引っかけ）
+  D: (js) => `
+    <header><nav><a href="/job/${js[0] ? js[0].id : 1}">おすすめ求人</a><a href="/">トップ</a></nav></header>
+    <main><h1>案件</h1><section><div class="wrap"><div class="inner">${js.map((j) => `
+      <article class="c"><div class="hd"><h2><a href="/job/${j.id}">${esc(j.title)}</a></h2></div>
+      <div class="bd"><span>${esc(j.teaser)}</span><span>${esc(j.budget)}</span></div></article>`).join('')}
+    </div></div></section></main>`,
+};
+
+const listPage = (site) => {
+  const js = site ? JOBS.filter((j) => (j.site || 'A') === site) : JOBS;
+  const layout = LAYOUTS[site || 'A'] || LAYOUTS.A;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>案件検索</title></head><body>
+${site === 'D' ? '' : '<header><a href="/">テスト求人サイト</a></header>'}
+${layout(js)}
+<footer><a href="/">トップへ</a></footer></body></html>`;
+};
 
 const detailPage = (j) => `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(j.title)}</title></head><body>
 <header><a href="/">テスト求人サイト</a></header>
@@ -46,7 +69,7 @@ export function start(port = 8787) {
     const url = new URL(req.url, `http://localhost:${port}`);
     const send = (html) => { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); res.end(html); };
     let m;
-    if (url.pathname === '/' || url.pathname === '/search') return send(listPage());
+    if (url.pathname === '/' || url.pathname === '/search') return send(listPage(url.searchParams.get('site')));
     if ((m = url.pathname.match(/^\/job\/(\d+)$/))) {
       const j = byId.get(m[1]);
       return j ? send(detailPage(j)) : (res.writeHead(404), res.end('nf'));

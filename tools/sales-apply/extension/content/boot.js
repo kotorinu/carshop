@@ -63,14 +63,21 @@
       const settings = await new Promise((r) => chrome.storage.local.get({ settings: {} }, (o) => r(o.settings || {})));
       currentJob = { ...currentJob, ...s };
       currentJob.must = scoring.checkMust(currentJob, settings.mustKeys || scoring.DEFAULT_MUST);
-      const draft = await loadDraft();
+      const saved = await loadDraftRecord();
       panel.set({
-        draft: draft || '',
+        draft: (saved && saved.text) || '',
         message: verdictMessage(currentJob),
-        warnings: currentJob.redFlags,
+        // 前に作ったときの「募集要項から読み取ったこと」と注意書きも一緒に戻す
+        warnings: [...(currentJob.redFlags || []), ...((saved && saved.warnings) || [])],
         checklist: currentJob.checklist || [],
         askInInterview: currentJob.askInInterview || [],
+        posting: (saved && saved.posting) || null,
       });
+      // 条件を満たした案件なら、開いた時点で応募文まで作っておく。
+      // 「開いたら、もう出来ている」状態にするため。
+      if (!(saved && saved.text) && currentJob.must && currentJob.must.passed && mode === 'detail') {
+        await compose(0);
+      }
     }
   }
 
@@ -141,13 +148,14 @@
       maxWidth: ad.maxWidth,
     });
     await store.set('variant:' + jobKey(), variant);
-    await saveDraft(out.text);
+    await saveDraft(out.text, { posting: out.posting, warnings: out.warnings });
     panel.set({
       busy: false,
       draft: out.text,
       warnings: [...(currentJob.redFlags || []), ...(currentJob.ngItems || []), ...out.warnings],
       checklist: currentJob.checklist || [],
       askInInterview: currentJob.askInInterview || [],
+      posting: out.posting,
       message: `${out.categoryLabel} の型で書きました。声に出して読んで、引っかかる所だけ直してください。`,
     });
   }
@@ -208,15 +216,24 @@
     return `${ad.id}:${id}`;
   }
 
-  async function saveDraft(text) {
+  async function saveDraft(text, extra = {}) {
     const drafts = await store.get('drafts', {});
-    drafts[jobKey()] = { text, at: Date.now(), url: location.href, title: currentJob?.title || document.title };
+    const prev = drafts[jobKey()] || {};
+    drafts[jobKey()] = {
+      ...prev, ...extra,
+      text, at: Date.now(), url: location.href, title: currentJob?.title || document.title,
+    };
     await store.set('drafts', drafts);
   }
 
-  async function loadDraft() {
+  /** 保存済みの応募文（読み取り結果・注意書きつき） */
+  async function loadDraftRecord() {
     const drafts = await store.get('drafts', {});
-    return drafts[jobKey()]?.text || '';
+    return drafts[jobKey()] || null;
+  }
+
+  async function loadDraft() {
+    return (await loadDraftRecord())?.text || '';
   }
 
   /** 詳細ページはその場から、フォームページは保存済みの案件情報から復元する */

@@ -74,7 +74,7 @@ export function mountPanel(handlers) {
 
   let state = {
     mode: '', site: '', jobs: [], draft: '', warnings: [], message: '',
-    banned: '', checklist: [], askInInterview: [], busy: false, minimized: false,
+    banned: '', checklist: [], askInInterview: [], posting: null, busy: false, minimized: false,
   };
 
   function render() {
@@ -134,6 +134,25 @@ export function mountPanel(handlers) {
       w.className = 'warn';
       w.innerHTML = `<b>直したほうがいい点</b><br>` + state.warnings.map((x) => `・${escapeHtml(x)}`).join('<br>');
       body.append(w);
+    }
+
+    if (state.posting) {
+      const po = state.posting;
+      const bits = [];
+      if (po.magicWord) bits.push(`合言葉「${po.magicWord}」を冒頭に入れました`);
+      if (po.maxLength) bits.push(`${po.maxLength}文字以内の指定に合わせました`);
+      if (po.company) bits.push(`会社名: ${po.company}`);
+      if (po.requirements.length) bits.push(`指定項目 ${po.requirements.length}件に回答しました`);
+      if (po.unanswered.length) bits.push(`⚠ 答えられなかった項目: ${po.unanswered.join('・')}`);
+      if (bits.length) {
+        const h = document.createElement('div');
+        h.className = 'h';
+        h.textContent = '募集要項から読み取ったこと';
+        const box = document.createElement('div');
+        box.className = 'ok';
+        box.innerHTML = bits.map((b) => `・${escapeHtml(b)}`).join('<br>');
+        body.append(h, box);
+      }
     }
 
     if (state.checklist.length) {

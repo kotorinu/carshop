@@ -3,6 +3,7 @@ let JSDOM = null;
 try { ({ JSDOM } = await import('jsdom')); } catch { /* 未インストールならHTML読み取りのテストは飛ばす */ }
 import * as sc from '../extension/core/scoring.js';
 import * as cp from '../extension/core/compose.js';
+import * as rq from '../extension/core/requirements.js';
 import { readFileSync } from 'node:fs';
 
 let pass = 0; let fail = 0; const bad = [];
@@ -149,6 +150,86 @@ check('箇条書きの長い行は警告しない',
   cp.deodorize(`・${'あ'.repeat(80)}`).warnings.every((w) => !w.includes('長すぎ')));
 check('引用の中は文字数に数えない',
   cp.deodorize(`「${'あ'.repeat(80)}」を拝見しました。`).warnings.every((w) => !w.includes('長すぎ')));
+
+/* ========== 募集要項を読む ========== */
+section('募集要項を読む');
+
+const P2 = { ...PROFILE, age: '?（未記入）', qualifications: '?（未記入）' };
+const reqLabels = (d) => rq.extractRequirements(d, P2).map((r) => r.label);
+
+check('改行つき箇条書きを読む',
+  reqLabels('ご応募の際は、以下を記載してください。\n・お名前\n・年齢\n・志望動機').join(',') === 'お名前,年齢,志望動機');
+check('改行が潰れた箇条書きを読む（ブラウザのinnerText対策）',
+  reqLabels('ご応募の際は、以下を記載してください。 ・お名前 ・稼働可能時間 ・志望動機 なお冒頭に「A」と記載してください。').join(',') === 'お名前,稼働可能時間,志望動機');
+check('丸数字の箇条書きを読む',
+  reqLabels('応募時に以下をお知らせください。 ①お名前 ②稼働可能時間 ③志望動機').join(',') === 'お名前,稼働可能時間,志望動機');
+check('1文に並べた形を読む',
+  reqLabels('ご応募の際は、お名前・年齢・稼働可能時間・保有資格 を記載してください。').join(',') === 'お名前,年齢,稼働可能時間,保有資格');
+check('指示が無ければ空', rq.extractRequirements('個人のお客様向けのサービスです。', P2).length === 0);
+check('「以下」は項目として拾わない', !reqLabels('ご応募の際は、以下を記載してください。\n・お名前').includes('以下'));
+
+const answered = rq.extractRequirements('応募時に以下を記載してください。\n・お名前\n・稼働可能時間\n・通信環境\n・志望動機\n・営業経験', PROFILE);
+check('氏名に答えられる', answered.find((r) => r.key === 'fullName').answer === '緒方 琴音');
+check('稼働時間に答えられる', answered.find((r) => r.key === 'hours').answer.includes('平日19〜23時'));
+check('通信環境に答えられる', answered.find((r) => r.key === 'network').answer.includes('Zoom'));
+check('志望動機に答えられる', answered.find((r) => r.key === 'motivation').answer.includes('営業'));
+check('営業経験に答えられる（未経験と正直に）', answered.find((r) => r.key === 'experience').answer.includes('経験はありません'));
+check('プロフィールが「?」の項目は答えられない扱い',
+  rq.extractRequirements('応募時に以下を記載してください。\n・年齢', P2)[0].answer === null);
+
+check('合言葉を読む（冒頭に「◯◯」と記載）',
+  rq.extractMagicWord('応募メッセージの冒頭に「オンライン商談希望」と記載してください。') === 'オンライン商談希望');
+check('合言葉を読む（「◯◯」と記載の上）',
+  rq.extractMagicWord('「営業やります」と記載の上ご応募ください。') === '営業やります');
+check('件名の指定も合言葉として読む',
+  rq.extractMagicWord('件名に「応募：営業代行」と入力してください。') === '応募：営業代行');
+check('合言葉が無ければnull', rq.extractMagicWord('よろしくお願いします。') === null);
+
+check('字数制限を読む（400文字以内）', rq.extractMaxLength('400文字以内でお願いします') === 400);
+check('字数制限を読む（300字まで）', rq.extractMaxLength('300字まででお願いします') === 300);
+check('字数制限が無ければnull', rq.extractMaxLength('よろしくお願いします') === null);
+
+check('会社名を読む（株式会社）', rq.extractCompany('株式会社ライフデザインです。') === '株式会社ライフデザイン');
+check('会社名を読む（社名の後ろに文が続く）',
+  rq.extractCompany('合同会社ヘルスラボが運営するサービスです') === '合同会社ヘルスラボ');
+check('会社名が無ければnull', rq.extractCompany('よろしくお願いします') === null);
+check('理念の言葉を借りる（括られた言葉を優先）',
+  rq.extractPhilosophy('私たちは「一人ひとりの人生の選択肢を増やす」ことを理念に掲げています') === '一人ひとりの人生の選択肢を増やす');
+check('括りが無ければ文ごと拾う',
+  (rq.extractPhilosophy('お客様の人生が変わる瞬間に立ち会える仕事です') || '').includes('人生が変わる'));
+
+section('募集要項を守った応募文');
+const withReq = cp.composeApplication({
+  id: 'r1', site: 'lancers', title: 'キャリアスクールの個別相談',
+  description: `株式会社ライフデザインです。私たちは「一人ひとりの人生の選択肢を増やす」ことを理念に掲げています。
+個人のお客様向け。アポイントは弊社で用意します。Zoom完結。単価50万円。
+ご応募の際は、以下を記載してください。
+・お名前
+・稼働可能時間
+・志望動機
+なお、冒頭に「オンライン商談希望」と記載してください。`,
+}, PROFILE);
+check('★合言葉が冒頭にある', withReq.text.startsWith('オンライン商談希望'));
+check('★指定項目に全部答えている',
+  ['お名前：', '稼働可能時間：', '志望動機：'].every((k) => withReq.text.includes(k)));
+check('会社名に触れている', withReq.text.includes('株式会社ライフデザイン'));
+check('理念の言葉を借りている', withReq.text.includes('一人ひとりの人生の選択肢を増やす'));
+check('合言葉について注意書きが出る', withReq.warnings.some((w) => w.includes('冒頭')));
+check('志望動機を指定項目で答えたら本文で重複しない',
+  (withReq.text.match(/営業という、どこに行っても通用する力/g) || []).length <= 1);
+
+const tight = cp.composeApplication({
+  id: 'r2', site: 'lancers', title: 'フィットネスの入会カウンセリング',
+  description: `合同会社ヘルスラボです。大切にしているのは「続けられる人を増やす」ことです。
+個人のお客様向け。アポイントは弊社で用意します。Zoom完結。単価45万円。
+応募メッセージは400文字以内でお願いします。`,
+}, PROFILE);
+const tightWidth = [...tight.text].reduce((n, c) => n + (/[\x00-\x7F]/.test(c) ? 0.5 : 1), 0);
+check('★400文字以内の指定を守る', tightWidth <= 400, `${Math.round(tightWidth)}文字相当`);
+check('短くしても会社の言葉は残す', tight.text.includes('続けられる人を増やす'));
+check('短くしても熱量は残す', /営業というスキル|営業力|どこに行っても通用する/.test(tight.text));
+check('短くしても稼働条件は残す', tight.text.includes('平日19〜23時'));
+check('字数制限について注意書きが出る', tight.warnings.some((w) => w.includes('400')));
 
 /* ========== 一覧の読み取り（jsdom） ========== */
 if (!JSDOM) {

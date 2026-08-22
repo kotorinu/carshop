@@ -15,6 +15,7 @@ import {
   NEWBIE_HONESTY, EXPERIENCED,
   NG_WORDS, MAX_SENTENCE_LEN,
 } from './phrases.js';
+import { readPosting } from './requirements.js';
 
 /* ---------- 小道具 ---------- */
 
@@ -167,12 +168,34 @@ export function composeApplication(job, profile, opt = {}) {
 
   vars.salesExperience = p.salesExperience;
 
+  // 募集要項を読む。指定された項目・合言葉・字数制限・会社の言葉を拾う
+  const posting = opt.posting || readPosting(job, p);
+  const reqKeys = new Set(posting.requirements.map((r) => r.key));
+  const maxWidth = posting.maxLength || opt.maxWidth;
+
   // 段落は「名前つき」で作る。文字数上限のある媒体では、落としてよい段落から削るため。
   const paras = [];
   const add = (key, textValue) => { if (textValue) paras.push({ key, text: textValue }); };
 
+  // 0. 合言葉。「冒頭に◯◯と記載」は守らないと読まれずに落とされる。絶対に削らない
+  if (posting.magicWord) add('magic', posting.magicWord);
+
   // 1. 書き出し（案件名 + 募集文から拾ったフック）
   add('opener', fill(pick(OPENERS, rnd), vars, missing));
+
+  // 字数制限が厳しいときは、全体を短い型に切り替える。
+  // 削って消すより、短く書いたほうが「読んだ証拠」を残せる。
+  const tight = !!maxWidth && maxWidth <= 600;
+
+  // 2. 会社の言葉に触れる。募集文を読んだ証拠になるので、字数が厳しくても必ず入れる
+  const phil = posting.philosophy ? posting.philosophy.replace(/^[「『]|[」』]$/g, '') : null;
+  if (phil && tight) {
+    add('company', `${posting.company ? `${posting.company}の` : ''}「${phil}」という言葉に、いちばん反応しました。`);
+  } else if (phil) {
+    add('company', `${posting.company ? `${posting.company}の` : ''}「${phil}」というところ、読んでいて手が止まりました。自分がやりたいのもそこなので、その言葉を借りて話せる側に回りたいです。`);
+  } else if (posting.company && !tight) {
+    add('company', `${posting.company}の募集文を最後まで読みました。書かれていることに嘘がない感じがして、ここで働いている姿を想像できました。`);
+  }
 
   // 2. 自己紹介
   add('intro', fill(pick(SELF_INTRO, rnd), vars, missing));
@@ -187,17 +210,32 @@ export function composeApplication(job, profile, opt = {}) {
   add('capability', pick(CAPABILITY_BLOCKS[category] || CAPABILITY_BLOCKS.unknown, rnd));
 
   // 5. 営業経験。未経験なら隠さず正直に書く（そのほうが通る）
-  if (p.salesExperienceLevel === 'none') {
+  // ※ 指定項目で聞かれている場合は、後ろの「ご指定の項目」でまとめて答えるので重複させない
+  if (reqKeys.has('experience')) {
+    // 指定項目側で答える
+  } else if (p.salesExperienceLevel === 'none') {
     add('experience', pick(NEWBIE_HONESTY, rnd));
   } else if (p.salesExperienceLevel && !isBlank(p.salesExperience)) {
     add('experience', fill(pick(EXPERIENCED, rnd), vars, missing));
   }
 
-  // 6. 熱量（応募文の主役）
-  add('motivation', `${pick(MOTIVATION, rnd)}\n${pick(PROOF_OF_HUNGER, rnd)}`);
+  // 6. 熱量（応募文の主役）。志望動機を指定項目で聞かれていれば、そちらに寄せる
+  if (!reqKeys.has('motivation')) {
+    add('motivation', tight ? pick(MOTIVATION, rnd) : `${pick(MOTIVATION, rnd)}\n${pick(PROOF_OF_HUNGER, rnd)}`);
+  }
 
-  // 7. 稼働条件
-  add('availability', fill(pick(AVAILABILITY, rnd), vars, missing));
+  // 7. 稼働条件（指定項目で聞かれていればそちらに寄せる）
+  if (!reqKeys.has('hours')) add('availability', fill(pick(AVAILABILITY, rnd), vars, missing));
+
+  // 8. ご指定の項目。ここを外すと読まれずに落ちるので、絶対に削らない
+  if (posting.requirements.length) {
+    const rows = posting.requirements.map((r) => {
+      const a = r.answer || `【要記入: ${r.label}】`;
+      if (!r.answer && !missing.includes(r.label)) missing.push(r.label);
+      return `${r.label}：${a}`;
+    });
+    add('requirements', ['ご指定の項目にお答えします。', ...rows].join('\n'));
+  }
 
   // 8. 質問（返信のきっかけ。案件の質を見極める逆質問も兼ねる）
   if (opt.includeQuestion !== false) add('question', QUESTIONS[category] || QUESTIONS.unknown);
@@ -205,12 +243,14 @@ export function composeApplication(job, profile, opt = {}) {
   // 9. 締め
   add('closer', pick(CLOSERS, rnd));
 
-  const raw = clampParagraphs(paras, opt.maxWidth).map((x) => x.text).join('\n\n');
+  const raw = clampParagraphs(paras, maxWidth).map((x) => x.text).join('\n\n');
   const { text, warnings } = deodorize(raw);
 
   if (missing.length) {
-    warnings.unshift(`プロフィール未記入: ${missing.join(', ')} … profile.json を埋めてください。`);
+    warnings.unshift(`未記入: ${missing.join(', ')} … 設定画面かprofile.jsonを埋めてください。`);
   }
+  if (posting.magicWord) warnings.push(`募集文の指示どおり、冒頭に「${posting.magicWord}」を入れました。消さないでください。`);
+  if (posting.maxLength) warnings.push(`募集文の指定により${posting.maxLength}文字以内に収めています。`);
 
   return {
     text,
@@ -219,6 +259,7 @@ export function composeApplication(job, profile, opt = {}) {
     categoryLabel: CATEGORY_LABELS[category],
     warnings,
     missing,
+    posting,
   };
 }
 
@@ -257,7 +298,8 @@ function buildSubject(job, p, category) {
  */
 function clampParagraphs(paras, maxWidth) {
   if (!maxWidth) return paras;
-  const droppable = ['question', 'capability', 'experience', 'achievements', 'intro'];
+  // 合言葉と指定項目は、削ると落とされるので絶対に残す
+  const droppable = ['question', 'capability', 'experience', 'achievements', 'intro', 'company'];
   let out = [...paras];
   const total = () => width(out.map((x) => x.text).join('\n\n'));
   for (const key of droppable) {
