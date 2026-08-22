@@ -63,3 +63,14 @@ cd richmenu && node render.cjs   # → richmenu.png (2500x843)
 ```
 
 puppeteer は banner-assets の node_modules を流用している。
+
+## 停止した機能
+
+**朝ルーティン便（毎朝5:30のリマインドLINE）— 2026-08-22 停止**
+
+生成スクリプト `morning-routine-push.mjs`（`st:運営` タグ宛に7日分の予約配信を積むもの）は削除した。carshop側から新しい予約が積まれることはない。完全に止めるには残り2つの確認が必要:
+
+1. **予約済みの配信** — Harnessに残っている「朝ルーティン便 ◯◯」の予約は管理画面から削除する（削除するまで予定日時に届く）
+2. **秘書AI（line-fastapi-bot）の5:30朝礼** — 2026-07-20に朝ルーティン便はこちらへ統合済み。いま毎朝届いているのはこの経路なので、停止は line-fastapi-bot 側で行う
+
+復活させるときは `git log -- tools/line-harness-seed/morning-routine-push.mjs` から復元できる。
