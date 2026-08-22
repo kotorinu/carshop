@@ -101,7 +101,8 @@
     }
     if (state.draft) {
       list.push({ label: 'コピー', sub: true, onClick: copyDraft });
-      list.push({ label: '応募済みにする', sub: true, onClick: markApplied });
+      list.push({ label: '✅ 応募した', onClick: markApplied });
+      list.push({ label: '見送る', sub: true, onClick: markSkipped });
     }
     if (mode === 'detail') {
       list.push({ label: '応募ページへ', sub: true, onClick: goToForm });
@@ -149,6 +150,8 @@
     });
     await store.set('variant:' + jobKey(), variant);
     await saveDraft(out.text, { posting: out.posting, warnings: out.warnings });
+    // 応募文ができた時点で「書きかけ」にする。次の巡回でまた開かれることはない
+    await send({ type: 'setStatus', status: 'drafted', key: jobKey(), title: currentJob?.title || document.title });
     panel.set({
       busy: false,
       draft: out.text,
@@ -273,8 +276,16 @@
   }
 
   async function markApplied() {
-    await send({ type: 'markApplied', key: jobKey(), url: location.href, title: currentJob?.title || document.title });
-    panel.set({ message: '応募済みに記録しました。同じ案件に二重応募しないよう、一覧から消えます。' });
+    await send({
+      type: 'setStatus', status: 'applied', key: jobKey(),
+      url: location.href, title: currentJob?.title || document.title,
+    });
+    panel.set({ message: '✅ 応募済みにしました。この案件は二度と出てきません（二重応募を防ぎます）。' });
+  }
+
+  async function markSkipped() {
+    await send({ type: 'setStatus', status: 'skipped', key: jobKey(), title: currentJob?.title || document.title });
+    panel.set({ message: '見送りにしました。この案件はもう出てきません。' });
   }
 
   /** 詳細ページの「応募する／提案する」リンクをたどる（送信ではなく画面遷移だけ） */

@@ -2,17 +2,21 @@ const $ = (s) => document.querySelector(s);
 const send = (msg) => new Promise((r) => chrome.runtime.sendMessage(msg, r));
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-let state = { jobs: [], applied: {}, settings: { mustKeys: [], maxOpenTabs: 8 }, crawl: {} };
-let tab = 'top';
+let state = { jobs: [], applied: {}, settings: { mustKeys: [], maxOpenTabs: 8, targetCandidates: 10 }, crawl: {} };
+let tab = 'candidate';
+let JS = null;   // jobstate モジュール
 let LABELS = {};
 let ALL_KEYS = [];
 
 async function load() {
   const scoring = await import(chrome.runtime.getURL('core/scoring.js'));
+  JS = await import(chrome.runtime.getURL('core/jobstate.js'));
   LABELS = scoring.CRITERIA_LABELS;
   ALL_KEYS = scoring.CRITERIA_KEYS;
   state = await send({ type: 'getState' });
   $('#maxOpenTabs').value = state.settings.maxOpenTabs;
+  $('#targetCandidates').value = state.settings.targetCandidates ?? 10;
+  renderCounts();
   renderMust();
   renderProgress(state.crawl);
   render();
@@ -34,22 +38,36 @@ function renderMust() {
 
 /* ---------- 一覧 ---------- */
 
+function renderCounts() {
+  const n = JS ? JS.summarize(state.jobs || []) : {};
+  $('#counts').innerHTML = [
+    ['候補', n.candidate], ['書きかけ', n.drafted], ['応募済み', n.applied],
+    ['見送り', n.skipped], ['対象外', n.rejected],
+  ].map(([k, v]) => `${k} <b>${v || 0}</b>`).join('　');
+}
+
 function rows() {
-  const { jobs, applied } = state;
-  if (tab === 'applied') {
-    return Object.entries(applied)
-      .sort((a, b) => b[1].at - a[1].at)
-      .map(([key, v]) => ({ key, title: v.title, url: v.url, score: '', verdict: 'apply', budget: new Date(v.at).toLocaleString('ja-JP') }));
-  }
-  const open = (jobs || []).filter((j) => !applied[j.key]);
-  const sorted = [...open].sort((a, b) => (b.score || 0) - (a.score || 0));
-  return tab === 'top' ? sorted.filter((j) => j.must && j.must.passed) : sorted;
+  const jobs = state.jobs || [];
+  const sorted = JS ? JS.sortForList(jobs) : jobs;
+  if (tab === 'all') return sorted;
+  return sorted.filter((j) => j.status === tab);
 }
 
 function render() {
   const list = $('#list');
   const data = rows();
   if (!data.length) {
+    const empty = {
+      candidate: '条件を満たす新しい案件がありません。<br>上の「条件に合う案件を探して開く」を押してください。<br><br>探しても出てこないときは、マスト条件のチェックを減らしてください。<br>確認できなかった項目は、面接で聞けば済みます。',
+      drafted: '書きかけの応募文はありません。<br>候補のタブから案件を開くと、応募文が作られてここに入ります。',
+      applied: 'まだ応募していません。<br>応募したら、その案件のパネルで「✅ 応募した」を押してください。',
+      rejected: '対象外にした案件はまだありません。',
+      all: 'まだ案件がありません。上のボタンを押してください。',
+    }[tab];
+    list.innerHTML = `<div class="empty">${empty}</div>`;
+    return;
+  }
+  if (false) {
     list.innerHTML = tab === 'top'
       ? `<div class="empty">条件を満たす案件がまだありません。<br>上の「条件に合う案件を探して開く」を押してください。<br><br>探しても出てこないときは、マスト条件のチェックを減らしてください。<br>確認できなかった項目は、面接で聞けば済みます。</div>`
       : `<div class="empty">まだ案件がありません。上のボタンを押してください。</div>`;
@@ -58,7 +76,11 @@ function render() {
   const icon = { ok: '◯', ng: '×', warn: '△', unknown: '?' };
   list.innerHTML = data.map((j) => {
     const must = j.must || { passed: false, reasons: [], unconfirmed: [] };
-    const state2 = must.passed ? ['apply', '合格'] : must.reasons.length ? ['skip', '対象外'] : ['maybe', '確認要'];
+    const badgeBy = {
+      candidate: ['apply', '候補'], drafted: ['maybe', '書きかけ'], applied: ['apply', '応募済み'],
+      skipped: ['banned', '見送り'], rejected: ['skip', '対象外'], new: ['maybe', '未判定'],
+    };
+    const state2 = badgeBy[j.status] || (must.passed ? ['apply', '候補'] : ['skip', '対象外']);
     return `
     <li class="${must.passed ? 'top' : ''}">
       <a href="${esc(j.url)}" target="_blank" rel="noopener">${esc(j.title || '(無題)')}</a>
@@ -73,6 +95,7 @@ function render() {
       ${(j.checklist || []).length ? `<div class="meta">${j.checklist.map((c) => `${esc(c.label)}${icon[c.status] || '?'}`).join(' ')}</div>` : ''}
     </li>`;
   }).join('');
+  renderCounts();
 }
 
 /* ---------- 進捗 ---------- */
@@ -159,10 +182,12 @@ $('#openTop').onclick = async () => {
   $('#hint').textContent = res.opened ? `${res.opened}件を開きました` : '条件を満たす案件がありません';
 };
 
-$('#maxOpenTabs').onchange = async () => {
-  await send({ type: 'setSettings', settings: { maxOpenTabs: Number($('#maxOpenTabs').value) } });
-  await load();
-};
+for (const id of ['maxOpenTabs', 'targetCandidates']) {
+  $(`#${id}`).onchange = async () => {
+    await send({ type: 'setSettings', settings: { [id]: Number($(`#${id}`).value) } });
+    await load();
+  };
+}
 
 document.querySelectorAll('.tabs button').forEach((b) => {
   b.onclick = () => {
@@ -181,9 +206,9 @@ $('#inject').onclick = async () => {
 };
 
 $('#csv').onclick = () => {
-  const head = ['サイト', 'タイトル', '判定', '点数', '報酬', '応募数', '条件に反する点', '確認できず', 'URL'];
+  const head = ['サイト', 'タイトル', '状態', '点数', '報酬', '応募数', '条件に反する点', '確認できず', 'URL'];
   const lines = [head, ...rows().map((j) => [j.site || '', j.title || '',
-    j.must && j.must.passed ? '合格' : '対象外', j.score, j.budget || '', j.applicants ?? '',
+    (JS && JS.STATUS_LABEL[j.status]) || j.status || '', j.score, j.budget || '', j.applicants ?? '',
     (j.must && j.must.reasons || []).join(' / '), (j.must && j.must.unconfirmed || []).join(' / '), j.url])]
     .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv' });

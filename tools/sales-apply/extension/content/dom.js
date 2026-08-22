@@ -145,10 +145,15 @@ export function highlight(el) {
 function cardOf(link, pattern) {
   const idOf = (href) => { const m = pattern.exec(href); return m ? m[1] : null; };
   const myId = idOf(link.href);
+  // ページ全体を掴まないための境界。
+  // ヘッダーに同じ案件へのリンクがあると「別の案件は含まれない」判定をすり抜けるため、
+  // ページ構造の区切りでも必ず止める。
+  const STOP = new Set(['BODY', 'MAIN', 'HEADER', 'NAV', 'FOOTER', 'HTML']);
   let el = link;
   let best = link.parentElement || link;
   for (let i = 0; i < 8 && el.parentElement; i++) {
     el = el.parentElement;
+    if (STOP.has(el.tagName)) break;
     const ids = new Set(
       [...el.querySelectorAll('a[href]')].map((a) => idOf(a.href)).filter(Boolean),
     );
@@ -169,10 +174,23 @@ const num = (s) => {
  * @param {RegExp} detailPattern 詳細ページURLの形（例: /work\/detail\/(\d+)/）
  */
 export function scrapeListGeneric(detailPattern, opt = {}) {
+  return scrapeListFrom(document, detailPattern, location.href, opt);
+}
+
+/** fetchしてきた一覧HTMLから案件を拾う（ページ送りで使う） */
+export function scrapeListFromDoc(doc, detailPattern, baseUrl, opt = {}) {
+  return scrapeListFrom(doc, detailPattern, baseUrl, opt);
+}
+
+function scrapeListFrom(root, detailPattern, baseUrl, opt = {}) {
   const seen = new Set();
   const jobs = [];
-  for (const a of document.querySelectorAll('a[href]')) {
-    const href = a.href;
+  for (const a of root.querySelectorAll('a[href]')) {
+    // fetchしたHTMLでは a.href が空になることがあるので、baseUrl で補う
+    let href = a.href;
+    if (!href || href.startsWith('about:')) {
+      try { href = new URL(a.getAttribute('href'), baseUrl).toString(); } catch { continue; }
+    }
     const m = detailPattern.exec(href);
     if (!m) continue;
     const id = m[1] || href;

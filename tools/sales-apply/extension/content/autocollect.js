@@ -16,10 +16,12 @@
   const u = (p) => chrome.runtime.getURL(p);
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  /** 1ページあたり、詳細まで取りに行く上限。相手のサーバーに負担をかけない範囲 */
-  const MAX_DETAIL = 20;
+  /** 1回の検索で、詳細まで取りに行く上限。相手のサーバーに負担をかけない範囲 */
+  const MAX_DETAIL = 25;
   /** 詳細を取りに行く間隔（人が読む速さと同じくらい） */
   const FETCH_INTERVAL_MS = 500;
+  /** 何ページ目まで辿るか（1ページ目で足りなければ次へ） */
+  const MAX_PAGES = 3;
 
   const report = (payload) => chrome.runtime.sendMessage({ type: 'crawlResult', ...payload });
 
@@ -37,11 +39,31 @@
     const settings = await new Promise((r) => chrome.storage.local.get({ settings: {} }, (o) => r(o.settings || {})));
     const mustKeys = settings.mustKeys || scoring.DEFAULT_MUST;
 
+    // すでに知っている案件は、もう一度調べない（速いし、相手にも優しい）
+    const known = new Set((msgKnownIds() || []));
+
     // 画面が出来上がるまで少し待つ（遅延読み込みの一覧対策）
     await waitForLinks(ad.detailPattern);
 
-    const cards = dom.scrapeListGeneric(ad.detailPattern);
+    // 1ページ目で足りなければ、次のページも読む
+    let cards = dom.scrapeListGeneric(ad.detailPattern);
+    let pagesRead = 1;
+    for (let page = 2; page <= MAX_PAGES; page++) {
+      const fresh = cards.filter((c) => !known.has(`${ad.id}:${c.id}`));
+      if (fresh.length >= MAX_DETAIL) break;
+      const more = await readNextPage(ad, dom, page);
+      if (!more || !more.length) break;
+      const ids = new Set(cards.map((c) => c.id));
+      cards = cards.concat(more.filter((c) => !ids.has(c.id)));
+      pagesRead = page;
+    }
     if (!cards.length) return report({ site: ad.id, jobs: [], note: '一覧を読み取れませんでした' });
+
+    const skipped = cards.filter((c) => known.has(`${ad.id}:${c.id}`)).length;
+    cards = cards.filter((c) => !known.has(`${ad.id}:${c.id}`));
+    if (!cards.length) {
+      return report({ site: ad.id, jobs: [], scanned: skipped, pagesRead, note: `新しい案件はありません（既知${skipped}件）` });
+    }
 
     // カードの時点で「条件に反する」と分かるものは、詳細を取りに行かない。
     // 「不明」なだけのものは詳細を見れば確定するので、必ず取りに行く。
@@ -86,7 +108,7 @@
       if (i < worthOpening.length - 1) await sleep(FETCH_INTERVAL_MS);
     }
 
-    report({ site: ad.id, jobs: out, scanned: cards.length });
+    report({ site: ad.id, jobs: out, scanned: cards.length + skipped, skipped, pagesRead });
   } catch (e) {
     report({ site: 'unknown', jobs: [], note: `読み取りに失敗: ${String(e).slice(0, 120)}` });
   }
@@ -100,6 +122,39 @@
       if (res.ok) return await res.json();
     } catch { /* noop */ }
     return {};
+  }
+
+  /** background から渡された「すでに知っている案件」の一覧 */
+  function msgKnownIds() {
+    return window.__SALES_KNOWN_IDS__ || [];
+  }
+
+  /**
+   * 次のページを読む。ページ送りのURLはサイトによって違うので、
+   * ①アダプタの指定 → ②「次へ」リンク → ③ ?page=N の順に試す。
+   */
+  async function readNextPage(ad, dom, page) {
+    let url = null;
+    if (ad.pageUrl) {
+      url = ad.pageUrl(location.href, page);
+    } else {
+      const next = [...document.querySelectorAll('a[href]')]
+        .find((a) => /次へ|次の|Next|›|»/.test(dom.text(a)) && !a.getAttribute('aria-disabled'));
+      if (next) url = next.href;
+    }
+    if (!url) {
+      const u2 = new URL(location.href);
+      u2.searchParams.set('page', String(page));
+      url = u2.toString();
+    }
+    try {
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) return null;
+      const doc = new DOMParser().parseFromString(await res.text(), 'text/html');
+      return dom.scrapeListFromDoc(doc, ad.detailPattern, url);
+    } catch {
+      return null;
+    }
   }
 
   /** 一覧のリンクが出てくるまで待つ（最大6秒） */

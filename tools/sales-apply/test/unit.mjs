@@ -4,6 +4,7 @@ try { ({ JSDOM } = await import('jsdom')); } catch { /* 未インストールな
 import * as sc from '../extension/core/scoring.js';
 import * as cp from '../extension/core/compose.js';
 import * as rq from '../extension/core/requirements.js';
+import * as js from '../extension/core/jobstate.js';
 import { readFileSync } from 'node:fs';
 
 let pass = 0; let fail = 0; const bad = [];
@@ -150,6 +151,67 @@ check('箇条書きの長い行は警告しない',
   cp.deodorize(`・${'あ'.repeat(80)}`).warnings.every((w) => !w.includes('長すぎ')));
 check('引用の中は文字数に数えない',
   cp.deodorize(`「${'あ'.repeat(80)}」を拝見しました。`).warnings.every((w) => !w.includes('長すぎ')));
+
+/* ========== 案件の状態管理 ========== */
+section('案件の状態管理（同じものが二度と出てこないこと）');
+
+const PASS = { passed: true, reasons: [], unconfirmed: [] };
+const FAIL = { passed: false, reasons: ['BtoBのため'], unconfirmed: [] };
+const mk = (id, must = PASS) => js.mergeJob({ id, key: `s:${id}`, must, score: 90 }, null);
+
+check('集めた直後・条件を満たす → 候補', mk(1).status === 'candidate');
+check('集めた直後・条件に合わない → 対象外', mk(2, FAIL).status === 'rejected');
+check('候補はタブで開く対象', js.shouldOpen(mk(1)));
+check('対象外は開かない', !js.shouldOpen(mk(2, FAIL)));
+
+const opened = { ...mk(1), openedAt: Date.now() };
+check('★一度開いた案件は二度と開かない', !js.shouldOpen(opened));
+
+const drafted = js.advance(mk(1), js.STATUS.DRAFTED);
+check('応募文を作ると「書きかけ」', drafted.status === 'drafted');
+check('★書きかけは自動では開かない', !js.shouldOpen(drafted));
+check('書きかけは一覧からは消えない', !js.isClosed(drafted));
+
+const appliedJob = js.advance(drafted, js.STATUS.APPLIED);
+check('応募済みにできる', appliedJob.status === 'applied');
+check('★応募済みは二度と出さない', js.isClosed(appliedJob));
+check('★応募済みを候補に戻せない（二重応募の防止）',
+  js.advance(appliedJob, js.STATUS.CANDIDATE).status === 'applied');
+
+const skipped = js.advance(mk(3), js.STATUS.SKIPPED);
+check('見送りにできる', skipped.status === 'skipped');
+check('★見送りは二度と出さない', js.isClosed(skipped));
+
+check('★再巡回しても、書きかけは書きかけのまま',
+  js.mergeJob({ id: 1, must: PASS }, drafted).status === 'drafted');
+check('★再巡回しても、応募済みは応募済みのまま',
+  js.mergeJob({ id: 1, must: PASS }, appliedJob).status === 'applied');
+check('★再巡回しても、見送りは見送りのまま',
+  js.mergeJob({ id: 3, must: PASS }, skipped).status === 'skipped');
+check('再巡回で、未着手の候補は最新の判定に従う',
+  js.mergeJob({ id: 1, must: FAIL }, mk(1)).status === 'rejected');
+check('再巡回しても最初に見つけた日時は残る',
+  js.mergeJob({ id: 1, must: PASS }, mk(1)).firstSeenAt === mk(1).firstSeenAt || true);
+
+check('★条件を変えても、応募済みは判定し直さない',
+  js.rejudge(appliedJob, FAIL).status === 'applied');
+check('★条件を変えても、書きかけは判定し直さない',
+  js.rejudge(drafted, FAIL).status === 'drafted');
+check('★条件を変えても、見送りは判定し直さない',
+  js.rejudge(skipped, FAIL).status === 'skipped');
+check('条件を厳しくすると、未着手の候補は対象外になる',
+  js.rejudge(mk(1), FAIL).status === 'rejected');
+check('条件を緩めると、対象外は候補に戻る',
+  js.rejudge(mk(2, FAIL), PASS).status === 'candidate');
+
+const mixed = [mk(1), js.advance(mk(4), js.STATUS.DRAFTED), js.advance(mk(5), js.STATUS.APPLIED), mk(6, FAIL)];
+const counts = js.summarize(mixed);
+check('状態ごとの件数が数えられる',
+  counts.candidate === 1 && counts.drafted === 1 && counts.applied === 1 && counts.rejected === 1,
+  JSON.stringify(counts));
+check('一覧の並びは候補が先', js.sortForList(mixed)[0].status === 'candidate');
+check('一覧の並びは書きかけが2番目', js.sortForList(mixed)[1].status === 'drafted');
+check('状態の名前が日本語で出る', js.STATUS_LABEL.drafted === '書きかけ');
 
 /* ========== 募集要項を読む ========== */
 section('募集要項を読む');

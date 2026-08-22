@@ -83,6 +83,10 @@ check('初期のマスト条件が4つ入っている', (await popup.locator('#m
 check('探すボタンが押せる状態', !(await popup.locator('#auto').isDisabled()));
 
 console.log('\n=== ③ 巡回（一覧→詳細→判定→合格だけ開く）===');
+// テストでは全媒体を最後まで回らせる（途中で切り上げないように）
+await popup.evaluate(() => new Promise((r) => chrome.runtime.sendMessage(
+  { type: 'setSettings', settings: { targetCandidates: 30, maxOpenTabs: 20 } }, r)));
+await popup.waitForTimeout(500);
 await popup.click('#auto');
 
 // 「巡回を始めています…」で固まらないこと
@@ -294,18 +298,50 @@ console.log('\n=== ⑧の2 媒体ごとのHTMLの違いに耐えるか ===');
     collected.filter((id) => id === 15).length <= 1, `#15が${collected.filter((id) => id === 15).length}件`);
 }
 
-console.log('\n=== ⑨ 応募済みの記録（二重応募の防止）===');
+console.log('\n=== ⑨ 状態の管理（同じものが二度と出てこないこと）===');
+const readJobs = () => popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ jobs: [] }, (o) => r(o.jobs))));
+const statusOf = async (id) => {
+  const js = await readJobs();
+  const f = js.find((j) => Number(String(j.id)) === id);
+  return f ? f.status : null;
+};
+
+check('★応募文を作った案件は「書きかけ」になる', (await statusOf(1)) === 'drafted', String(await statusOf(1)));
+check('★開いた案件はすべて「書きかけ」になる（開いた時点で応募文ができている）',
+  (await statusOf(2)) === 'drafted', String(await statusOf(2)));
+check('条件に合わない案件は「対象外」', (await statusOf(3)) === 'rejected' || (await statusOf(3)) === null);
+{
+  const all = await readJobs();
+  const n = all.reduce((a, j) => ({ ...a, [j.status]: (a[j.status] || 0) + 1 }), {});
+  check('条件を満たした案件がすべて書きかけになっている',
+    (n.drafted || 0) === EXPECT_PASS.length, JSON.stringify(n));
+  check('★対象外の案件が候補や書きかけに混ざっていない',
+    all.filter((j) => j.status === 'drafted' || j.status === 'candidate')
+      .every((j) => j.must && j.must.passed), '');
+}
+
+// 応募済みにする
 await detail.evaluate(() => {
   const root = document.getElementById('sales-apply-panel').shadowRoot;
-  [...root.querySelectorAll('button.act')].find((x) => x.textContent.includes('応募済み')).click();
+  [...root.querySelectorAll('button.act')].find((x) => x.textContent.includes('応募した')).click();
 });
-await detail.waitForTimeout(1000);
+await detail.waitForTimeout(1200);
+check('★「応募した」を押すと応募済みになる', (await statusOf(1)) === 'applied', String(await statusOf(1)));
+const appliedLedger = await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ applied: {} }, (o) => r(o.applied))));
+check('応募履歴が別台帳にも残る', Object.keys(appliedLedger).length === 1);
+
 await popup.reload();
 await popup.waitForTimeout(1200);
-const afterApplied = await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ applied: {} }, (o) => r(o.applied))));
-check('応募済みとして記録される', Object.keys(afterApplied).length === 1, JSON.stringify(Object.keys(afterApplied)));
-const topCount = await popup.locator('#list li').count();
-check('応募済みは「条件に合う」一覧から消える', topCount === EXPECT_PASS.length - 1, `${topCount}件（期待 ${EXPECT_PASS.length - 1}件）`);
+const candidateCount = await popup.locator('#list li').count();
+check('★応募済みは「候補」一覧から消える',
+  !(await popup.locator('#list').textContent()).includes('パーソナルジム'), '');
+await popup.evaluate(() => document.querySelector('.tabs button[data-tab="applied"]').click());
+await popup.waitForTimeout(400);
+check('「応募済み」タブに移る', (await popup.locator('#list').textContent()).includes('パーソナルジム'));
+await popup.evaluate(() => document.querySelector('.tabs button[data-tab="drafted"]').click());
+await popup.waitForTimeout(400);
+await popup.evaluate(() => document.querySelector('.tabs button[data-tab="candidate"]').click());
+await popup.waitForTimeout(400);
 
 console.log('\n=== ⑩ マスト条件を変えると判定し直される ===');
 await popup.evaluate(() => {
@@ -324,16 +360,33 @@ await popup.evaluate(() => {
 });
 await popup.waitForTimeout(1200);
 
-console.log('\n=== ⑪ 2回目の巡回で重複しない ===');
-const before = (await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ jobs: [] }, (o) => r(o.jobs))))).length;
+console.log('\n=== ⑪ 2回目の巡回（もう出てこないことの確認）===');
+const before = (await readJobs()).length;
+const tabsBefore = ctx.pages().filter((p) => /\/job\/\d+/.test(p.url())).length;
+const beforeStates = Object.fromEntries((await readJobs()).map((j) => [String(j.id), j.status]));
+
 await popup.click('#auto');
 for (let i = 0; i < 180; i++) {
   const c = await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ crawl: {} }, (o) => r(o.crawl))));
   if (c && !c.running && c.finishedAt) break;
   await sleep(1000);
 }
-const after = (await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ jobs: [] }, (o) => r(o.jobs))))).length;
-check('同じ案件が二重に増えない', after === before, `${before}件 → ${after}件`);
+await sleep(1500);
+const afterJobs = await readJobs();
+check('同じ案件が二重に増えない', afterJobs.length === before, `${before}件 → ${afterJobs.length}件`);
+check('★応募済みの案件は2回目でも応募済みのまま',
+  afterJobs.find((j) => Number(String(j.id)) === 1).status === 'applied',
+  afterJobs.find((j) => Number(String(j.id)) === 1).status);
+check('★一度開いた案件は2回目でタブを開き直さない',
+  ctx.pages().filter((p) => /\/job\/\d+/.test(p.url())).length === tabsBefore,
+  `${tabsBefore}枚 → ${ctx.pages().filter((p) => /\/job\/\d+/.test(p.url())).length}枚`);
+const changed = afterJobs.filter((j) => beforeStates[String(j.id)] && beforeStates[String(j.id)] !== j.status);
+check('★2回目の巡回で状態が勝手に変わらない', changed.length === 0,
+  changed.map((j) => `${j.id}:${beforeStates[String(j.id)]}→${j.status}`).join(', '));
+const crawl2 = await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ crawl: {} }, (o) => r(o.crawl))));
+check('2回目は「調べ済みは飛ばした」と記録される',
+  (crawl2.log || []).some((l) => l.includes('飛ばした') || l.includes('新しいものなし') || l.includes('新しい案件はありません')),
+  (crawl2.log || []).join(' / '));
 
 console.log('\n=== ⑫ 設定画面 ===');
 const opt = await ctx.newPage();
