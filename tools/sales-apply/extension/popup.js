@@ -205,6 +205,35 @@ $('#inject').onclick = async () => {
   else window.close();
 };
 
+$('#diag').onclick = async () => {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.id) { alert('タブが見つかりません'); return; }
+  $('#diagBox').hidden = false;
+  $('#diagOut').value = '診断しています…（詳細ページを1件取りに行くので数秒かかります）';
+  try {
+    const [res] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: async (extUrl, pageUrl) => {
+        const m = await import(`${extUrl}content/diagnose.js`);
+        return m.runDiagnosis(pageUrl, extUrl);
+      },
+      args: [chrome.runtime.getURL(''), tab.url],
+    });
+    $('#diagOut').value = (res && res.result) || '結果を取得できませんでした。';
+  } catch (e) {
+    $('#diagOut').value = `診断できませんでした: ${e}\n\n`
+      + 'このサイトはまだ拡張機能の対象外かもしれません。\n'
+      + 'その場合は「このページで起動」を先に押してから、もう一度診断してください。';
+  }
+};
+$('#diagCopy').onclick = async () => {
+  $('#diagOut').select();
+  try { await navigator.clipboard.writeText($('#diagOut').value); } catch { document.execCommand('copy'); }
+  $('#diagCopy').textContent = 'コピーした';
+  setTimeout(() => { $('#diagCopy').textContent = 'コピー'; }, 1500);
+};
+$('#diagClose').onclick = () => { $('#diagBox').hidden = true; };
+
 $('#csv').onclick = () => {
   const head = ['サイト', 'タイトル', '状態', '点数', '報酬', '応募数', '条件に反する点', '確認できず', 'URL'];
   const lines = [head, ...rows().map((j) => [j.site || '', j.title || '',

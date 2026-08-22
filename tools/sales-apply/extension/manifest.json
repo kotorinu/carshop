@@ -53,7 +53,8 @@
         "content/*.js",
         "content/adapters/*.js",
         "profile.default.json",
-        "content/autocollect.js"
+        "content/autocollect.js",
+        "content/diagnose.js"
       ],
       "matches": [
         "https://*/*"

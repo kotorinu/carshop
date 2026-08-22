@@ -431,6 +431,46 @@ const saved = await opt.evaluate(() => new Promise((r) => chrome.storage.local.g
 check('設定が保存される', saved && saved.availability.responseTime === '平日は2時間以内',
   saved ? saved.availability.responseTime : 'null');
 
+console.log('\n=== ⑫の2 読み取り診断（実サイトで使う道具）===');
+{
+  const dpage = await ctx.newPage();
+  await dpage.goto(`http://localhost:${PORT}/search?site=A`);
+  await dpage.waitForTimeout(1200);
+  const report = await dpage.evaluate(async (extUrl) => {
+    const m = await import(`${extUrl}content/diagnose.js`);
+    return m.runDiagnosis(location.href, extUrl);
+  }, `chrome-extension://${extId}/`);
+
+  check('診断が結果を返す', typeof report === 'string' && report.length > 300, `${(report || '').length}文字`);
+  check('媒体の判定が出る', report.includes('媒体の判定'));
+  check('ページ種別の判定が出る', report.includes('案件一覧のページ'), report.split('\n')[3]);
+  check('読み取れた案件数が出る', /読み取れた案件: \d+件/.test(report));
+  check('先頭3件の中身が出る', (report.match(/^\s+・\[/gm) || []).length >= 3);
+  check('詳細ページを取りに行った結果が出る', report.includes('1件目を取得') || report.includes('本文'));
+  check('条件の判定が出る', report.includes('条件の判定'));
+  check('募集要項の読み取り結果が出る', report.includes('募集要項から読み取れたこと'));
+  check('フォームの読み取り結果が出る', report.includes('応募フォームの読み取り'));
+  check('★診断に個人情報が入っていない',
+    !report.includes('koto.tama.yellow') && !report.includes('08042934580') && !report.includes('東雪谷'),
+    '個人情報が混ざっている');
+
+  // 応募フォームのページでも診断できるか
+  const fpage = await ctx.newPage();
+  await fpage.goto(`http://localhost:${PORT}/apply/1`);
+  await fpage.waitForTimeout(1000);
+  const freport = await fpage.evaluate(async (extUrl) => {
+    const m = await import(`${extUrl}content/diagnose.js`);
+    return m.runDiagnosis(location.href, extUrl);
+  }, `chrome-extension://${extId}/`);
+  check('フォームページで入力欄が見つかったと報告する', freport.includes('応募文の入力欄: 見つかった'), '');
+  check('フォームページで氏名欄が見つかったと報告する', freport.includes('氏名の欄: 見つかった'), '');
+  check('フォームページで送信ボタンが見つかったと報告する', freport.includes('送信ボタン: 見つかった'), '');
+  check('★フォーム診断にも個人情報が入っていない',
+    !freport.includes('koto.tama.yellow') && !freport.includes('08042934580'), '');
+
+  await dpage.close(); await fpage.close();
+}
+
 console.log('\n=== ⑬ 使用禁止の媒体 ===');
 const cwCheck = await popup.evaluate(async (id) => {
   const ad = await import(`chrome-extension://${id}/content/adapters/index.js`);

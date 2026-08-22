@@ -41,6 +41,12 @@
   .apply { background: #dcfce7; color: #15803d; } .maybe { background: #fef9c3; color: #a16207; }
   .skip { background: #fee2e2; color: #b91c1c; } .banned { background: #f5f5f4; color: #57534e; }
   .empty { padding: 22px 14px; color: #78716c; font-size: 12px; line-height: 1.9; }
+  #diagBox { padding: 10px 12px; border-top: 1px solid #f0ece5; background: #fffbf5; }
+  .diagHead { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .diagHead b { flex: 1; font-size: 12.5px; }
+  #diagOut { width: 100%; box-sizing: border-box; height: 260px; font-family: ui-monospace, Menlo, monospace;
+    font-size: 11px; line-height: 1.55; border: 1px solid #e7e0d6; border-radius: 8px; padding: 8px; background: #fff; }
+  .diagNote { margin: 6px 0 0; font-size: 11px; color: #78716c; }
 </style>
 <header>
   <b>営業応募オートパイロット</b>
@@ -73,6 +79,17 @@
   <button class="s" id="inject">このページで起動</button>
   <button class="s" id="options">設定</button>
   <button class="s" id="csv">CSV</button>
+  <button class="s" id="diag">🔧 このページを診断</button>
+</div>
+
+<div id="diagBox" hidden>
+  <div class="diagHead">
+    <b>読み取り診断</b>
+    <button class="s" id="diagCopy">コピー</button>
+    <button class="s" id="diagClose">閉じる</button>
+  </div>
+  <textarea id="diagOut" readonly></textarea>
+  <p class="diagNote">この内容をClaudeに貼ってください。個人情報は含まれません。</p>
 </div>
 
 <div class="counts" id="counts"></div>
