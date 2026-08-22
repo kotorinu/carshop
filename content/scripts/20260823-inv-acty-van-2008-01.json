@@ -1,0 +1,27 @@
+{
+  "videoId": "20260823-inv-acty-van-2008-01",
+  "carId": "ホンダ-アクティバン-AU7088722825",
+  "format": "photo-inventory",
+  "targetLayer": "B_buyer",
+  "targetNote": "車検残りが2026年10月=いよいよ2ヶ月切り。過去3本(0725積み下ろし/0727仕事層/0803メーター誠実)と被らない角度で『荷室の広さ+車検までのラストチャンス』訴求に切り替え。8/10以降コンテンツ生成が止まっていたため再起動の1本目。未使用の06.jpg(リア外観)を初採用。",
+  "hookType": "open_loop",
+  "hookText": "車検、\n【あと2ヶ月】切りました",
+  "chip": { "line1": "ホンダ アクティバン", "line2": "2008年式・25.8万円" },
+  "scenes": [
+    { "index": 0, "startSec": 0, "endSec": 1.3, "narration": "車検、あと2ヶ月切りました。", "caption": "車検、\n【あと2ヶ月】切りました", "visualType": "carPhoto", "photoRef": "01.jpg", "interrupt": "punch" },
+    { "index": 1, "startSec": 1.3, "endSec": 3.4, "narration": "ホンダ アクティバン、660のSDX。", "caption": "ホンダ【アクティバン】660 SDX", "visualType": "carPhoto", "photoRef": "06.jpg", "interrupt": "panRight" },
+    { "index": 2, "startSec": 3.4, "endSec": 5.7, "narration": "荷室はこの通り、フルフラットでがっつり積めます。", "caption": "荷室は【フルフラット】\nがっつり積める", "visualType": "carPhoto", "photoRef": "11.jpg", "interrupt": "panLeft" },
+    { "index": 3, "startSec": 5.7, "endSec": 7.9, "narration": "運転席の状態、実走行12.1万キロです。", "caption": "運転席はこの状態\n実走行【12.1万km】", "visualType": "carPhoto", "photoRef": "09.jpg", "interrupt": "punch" },
+    { "index": 4, "startSec": 7.9, "endSec": 10.0, "narration": "支払総額、25.8万円。", "caption": "支払総額 25.8万円", "visualType": "priceReveal", "priceLabel": "支払総額", "priceValue": 25.8, "priceUnit": "万円", "priceNote": "法定整備付き・保証付き", "interrupt": "colorShift" },
+    { "index": 5, "startSec": 10.0, "endSec": 13.6, "narration": "名義変更したその日から乗れます。車検が切れる前に。", "caption": "車検が切れる前に\n【今のうち】に", "visualType": "videoClip", "clipRef": "driving-01.mp4", "sourcePhoto": "06.jpg", "genPrompt": "White Honda Acty kei van driving steadily along a quiet Japanese suburban street in bright daylight, rear three-quarter tracking shot, wheels rolling with slight motion blur, realistic lighting, stable smooth camera movement" },
+    { "index": 6, "startSec": 13.6, "endSec": 16.2, "narration": "現車は大阪・寝屋川。この価格は早い者勝ちです。", "caption": "現車あり【大阪・寝屋川】\n早い者勝ち", "visualType": "carPhoto", "photoRef": "01.jpg", "interrupt": "punch", "sfx": "残り1台" },
+    { "index": 7, "startSec": 16.2, "endSec": 18.2, "narration": "在庫確認と来店予約は、プロフのLINEから30秒です。", "caption": "LINEで在庫確認・来店予約", "visualType": "lineCta", "interrupt": "cut" }
+  ],
+  "cta": "プロフのLINE→来店予約30秒",
+  "hashtags": ["#アクティバン", "#軽バン", "#大阪中古車", "#格安中古車", "#寝屋川"],
+  "trendingSoundNote": "アップテンポのトレンド音を投稿時に手付け。10.0sの価格リビールにドロップを合わせる。",
+  "estimatedDurationSec": 22,
+  "status": "draft",
+  "reviewNotes": "価格・年式・走行・車検(2026年10月=残り約2ヶ月)はライブ在庫実掲載値(AU7088722825, 2026-08-23再同期)と一致。使用写真は全て目視確認済み: 01.jpg=フロント外観、06.jpg=リア外観(過去3本で未使用、今回初採用)、11.jpg=リアゲート開放の荷室(フルフラットな荷台を確認)、09.jpg=運転席からダッシュボード(チェック柄シート・鍵)。選定理由: 在庫10台中で車検満了が最も近い(2026年10月)。8/10以降コンテンツ生成が12日間止まっていたため再起動の1本として選定。",
+  "createdAt": "2026-08-23T00:00:00.000Z"
+}
