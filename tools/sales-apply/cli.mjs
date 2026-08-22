@@ -24,7 +24,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { composeApplication, deodorize, detectCategory } from './extension/core/compose.js';
-import { rankJobs, scoreJob } from './extension/core/scoring.js';
+import { rankJobs, scoreJob, checkMust, CRITERIA_LABELS, DEFAULT_MUST } from './extension/core/scoring.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const DRAFTS = path.join(HERE, 'drafts');
@@ -179,12 +179,11 @@ const commands = {
     const ranked = rankJobs(jobs, profile).slice(0, limit);
     console.log(`\n=== 応募文を作ります（${ranked.length}件）===\n`);
     for (const job of ranked) {
-      if (job.banned) {
-        console.log(`🚫 スキップ: ${job.title}\n     ${job.banned}`);
-        continue;
-      }
-      if ((job.redFlags.length || job.ngItems.length) && !has('force')) {
-        console.log(`⏭  スキップ: ${job.title}\n     理由: ${[...job.redFlags, ...job.ngItems].join(' / ')}（それでも作るなら --force）`);
+      if (!job.must.passed && !has('force')) {
+        const why = job.must.reasons.length
+          ? `条件に反する: ${job.must.reasons.join(' / ')}`
+          : `募集文で確認できず: ${job.must.unconfirmed.join(' / ')}`;
+        console.log(`⏭  スキップ: ${job.title}\n     ${why}（それでも作るなら --force）`);
         continue;
       }
       const out = composeApplication(job, profile);
@@ -202,18 +201,19 @@ const commands = {
     if (!file) die('--jobs <ファイル> を指定してください。');
     const ranked = rankJobs(loadJobs(file), profile);
     const icon = { ok: '◯', ng: '×', warn: '△', unknown: '?' };
-    console.log('\n点数  判定   対象 商材 単価 アポ 形式 客層   タイトル');
+    const pass = ranked.filter((j) => j.must.passed);
+    console.log('\n判定    点数  対象 商材 単価 アポ 形式 客層   タイトル');
     console.log('─'.repeat(100));
     for (const j of ranked) {
-      const mark = j.banned ? '🚫禁止' : j.redFlags.length ? '⚠危険' : { apply: '応募', maybe: '検討', skip: '見送' }[j.verdict];
+      const mark = j.must.passed ? '✅合格' : j.must.reasons.length ? '⛔対象外' : '△確認要';
       const cl = j.checklist.map((c) => ` ${icon[c.status] || '?'} `).join(' ');
-      console.log(`${String(j.score).padStart(4)}  ${mark} ${cl}  ${j.title}`);
-      if (j.banned) console.log(`        └ ${j.banned}`);
-      if (j.redFlags.length) console.log(`        └ ⚠ ${j.redFlags.join(' / ')}`);
-      if (j.ngItems.length) console.log(`        └ 避けるべき: ${j.ngItems.join(' / ')}`);
+      console.log(`${mark} ${String(j.score).padStart(4)} ${cl}  ${j.title}`);
+      if (j.must.reasons.length) console.log(`        └ ⛔ ${j.must.reasons.join(' / ')}`);
+      else if (j.must.unconfirmed.length) console.log(`        └ △ 募集文で確認できず: ${j.must.unconfirmed.join(' / ')}`);
     }
-    console.log('\n列の意味: 対象=BtoC / 商材=無形 / 単価=30〜120万 / アポ=譲渡型 / 形式=オンライン完結 / 客層=一般成人');
-    console.log('「?」は募集文に書いていない項目。面接で聞けばいいので、応募を止める理由にはしない。\n');
+    console.log(`\n${ranked.length}件中、マスト条件を満たすのは ${pass.length}件。`);
+    console.log('マスト条件: ' + DEFAULT_MUST.map((k) => CRITERIA_LABELS[k]).join(' / '));
+    console.log('列の意味: 対象=BtoC / 商材=無形 / 単価=30〜120万 / アポ=譲渡型 / 形式=オンライン完結 / 客層=一般成人\n');
   },
 
   check() {

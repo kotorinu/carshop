@@ -60,7 +60,9 @@
     currentJob = await resolveJob();
     if (currentJob) {
       const s = scoring.scoreJob(currentJob, profile || {});
+      const settings = await new Promise((r) => chrome.storage.local.get({ settings: {} }, (o) => r(o.settings || {})));
       currentJob = { ...currentJob, ...s };
+      currentJob.must = scoring.checkMust(currentJob, settings.mustKeys || scoring.DEFAULT_MUST);
       const draft = await loadDraft();
       panel.set({
         draft: draft || '',
@@ -109,14 +111,14 @@
       panel.set({ busy: false, message: '案件が見つかりませんでした。検索結果のページで押してください（読み込みが終わるまで少し待つ）。' });
       return;
     }
-    const ranked = scoring.rankJobs(jobs, profile || {});
+    const settings = await new Promise((r) => chrome.storage.local.get({ settings: {} }, (o) => r(o.settings || {})));
+    const ranked = scoring.rankJobs(jobs, profile || {}, settings.mustKeys || scoring.DEFAULT_MUST);
     const res = await send({ type: 'saveJobs', jobs: ranked, site: ad.id });
-    const applyCount = ranked.filter((j) => j.verdict === 'apply').length;
-    const maybeCount = ranked.filter((j) => j.verdict === 'maybe').length;
+    const passCount = ranked.filter((j) => j.must.passed).length;
     panel.set({
       busy: false,
       jobs: ranked,
-      message: `${jobs.length}件を読み取りました（新規${res.added}件）。応募推奨${applyCount}件・要確認${maybeCount}件。`
+      message: `${jobs.length}件を読み取りました（新規${res.added}件）。条件を満たすのは${passCount}件です。`
         + '複数の案件に同時に応募するのが前提です。上から順に開いてください。',
     });
   }
@@ -232,12 +234,12 @@
   }
 
   function verdictMessage(job) {
-    if (job.banned) return '🚫 この媒体は使用禁止です。';
-    if (job.redFlags?.length) return '⚠ 危険な条件が入っています。応募しないことをおすすめします。';
-    if (job.ngItems?.length) return `⚠ ${job.score}点。避けるべき条件: ${job.ngItems.join(' / ')}`;
-    if (job.verdict === 'apply') return `おすすめ度 ${job.score}点。応募推奨です。`;
-    if (job.verdict === 'maybe') return `おすすめ度 ${job.score}点。不明な項目は面接で聞いてください。まず動くのが優先です。`;
-    return `おすすめ度 ${job.score}点。優先度は低めです。`;
+    const must = job.must || { passed: false, reasons: [], unconfirmed: [] };
+    if (must.reasons.length) return `⛔ 条件に反しています: ${must.reasons.join(' / ')}`;
+    if (must.unconfirmed.length) {
+      return `△ 募集文で確認できなかった条件があります: ${must.unconfirmed.join(' / ')}。面接で聞いてください。`;
+    }
+    return `✅ マスト条件を全部満たしています（${job.score}点）。`;
   }
 
   async function copyDraft() {

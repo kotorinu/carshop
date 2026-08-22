@@ -34,6 +34,8 @@
     if (ad.banned) return report({ site: ad.id, jobs: [], note: ad.banned });
 
     const profile = await loadProfile(u);
+    const settings = await new Promise((r) => chrome.storage.local.get({ settings: {} }, (o) => r(o.settings || {})));
+    const mustKeys = settings.mustKeys || scoring.DEFAULT_MUST;
 
     // 画面が出来上がるまで少し待つ（遅延読み込みの一覧対策）
     await waitForLinks(ad.detailPattern);
@@ -41,10 +43,14 @@
     const cards = dom.scrapeListGeneric(ad.detailPattern);
     if (!cards.length) return report({ site: ad.id, jobs: [], note: '一覧を読み取れませんでした' });
 
-    // カードの時点で明らかに違うものは、詳細を取りに行かない（時間と相手への負担の節約）
-    const prescored = cards.map((j) => ({ ...j, site: ad.id, ...scoring.scoreJob({ ...j, site: ad.id }, profile) }));
+    // カードの時点で「条件に反する」と分かるものは、詳細を取りに行かない。
+    // 「不明」なだけのものは詳細を見れば確定するので、必ず取りに行く。
+    const prescored = cards.map((j) => {
+      const scored = { ...j, site: ad.id, ...scoring.scoreJob({ ...j, site: ad.id }, profile) };
+      return { ...scored, must: scoring.checkMust(scored, mustKeys) };
+    });
     const worthOpening = prescored
-      .filter((j) => !j.banned && !j.redFlags.length && !hasHardMismatch(j))
+      .filter((j) => j.must.reasons.length === 0)   // 条件に反していない＝まだ望みがある
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_DETAIL);
 
@@ -71,7 +77,8 @@
         }
       } catch { /* 取れなければカードの情報のまま採点する */ }
 
-      out.push({ ...full, site: ad.id, ...scoring.scoreJob({ ...full, site: ad.id }, profile) });
+      const scored = { ...full, site: ad.id, ...scoring.scoreJob({ ...full, site: ad.id }, profile) };
+      out.push({ ...scored, must: scoring.checkMust(scored, mustKeys) });
 
       chrome.runtime.sendMessage({
         type: 'crawlTick', site: ad.id, done: i + 1, total: worthOpening.length,
@@ -104,8 +111,4 @@
     }
   }
 
-  /** チェックリストで「避けるべき」が2つ以上なら、詳細を見るまでもない */
-  function hasHardMismatch(j) {
-    return (j.checklist || []).filter((c) => c.status === 'ng').length >= 2;
-  }
 })();

@@ -175,15 +175,19 @@ export function mountPanel(handlers) {
     if (state.jobs.length) {
       const c = document.createElement('div');
       c.className = 'count';
-      c.textContent = `${state.jobs.length}件（点数順）`;
+      const pass = state.jobs.filter((j) => j.must && j.must.passed).length;
+      c.textContent = `${state.jobs.length}件中、条件を満たすのは${pass}件`;
       body.append(c);
       const ul = document.createElement('ul');
       ul.className = 'jobs';
       for (const j of state.jobs.slice(0, 20)) {
         const li = document.createElement('li');
-        const reason = j.redFlags?.length ? `⚠ ${j.redFlags[0]}` : (j.reasons || []).slice(0, 2).join(' / ');
+        const must = j.must || { passed: false, reasons: [], unconfirmed: [] };
+        const reason = must.reasons.length ? `⛔ ${must.reasons[0]}`
+          : must.unconfirmed.length ? `△ 確認できず: ${must.unconfirmed.join('・')}`
+            : '✅ 条件をすべて満たしています';
         li.innerHTML = `<a href="${escapeHtml(j.url)}" target="_blank" rel="noopener">${escapeHtml(j.title)}</a>
-          <div class="meta"><span class="badge ${j.verdict}">${j.score}点</span> ${escapeHtml(j.budget || '報酬不明')} ${j.applicants != null ? `／応募${j.applicants}件` : ''}</div>
+          <div class="meta"><span class="badge ${must.passed ? 'apply' : must.reasons.length ? 'skip' : 'maybe'}">${must.passed ? '合格' : '対象外'}</span> ${j.score}点 ${escapeHtml(j.budget || '報酬不明')} ${j.applicants != null ? `／応募${j.applicants}件` : ''}</div>
           <div class="meta">${escapeHtml(reason)}</div>`;
         ul.append(li);
       }

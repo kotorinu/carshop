@@ -1,3 +1,5 @@
+import { DEFAULT_MUST, checkMust } from './core/scoring.js';
+
 /**
  * サービスワーカー。保存と、自動巡回の司令塔。
  * 送信は絶対にしない（ここでも content 側でもクリックしない）。
@@ -11,7 +13,9 @@ const DEFAULT_STATE = {
   profile: null,
   jobs: [],
   applied: {},
-  settings: { minScore: 85, maxOpenTabs: 8 },
+  // minScore（点数のしきい値）ではなく、マスト条件で絞る。
+  // 条件を満たさない案件は、点数がいくら高くても届けない。
+  settings: { mustKeys: DEFAULT_MUST, maxOpenTabs: 8 },
   crawl: { running: false, done: 0, total: 0, log: [], finishedAt: 0, opened: 0, found: 0 },
 };
 
@@ -26,10 +30,13 @@ async function saveJobs(incoming, site) {
   const { jobs, applied } = await getState();
   const byKey = new Map(jobs.map((j) => [j.key, j]));
   let added = 0;
+  const { settings } = await getState();
   for (const j of incoming) {
     const key = `${site}:${j.id || j.url}`;
-    if (byKey.has(key)) byKey.set(key, { ...byKey.get(key), ...j, key, site });
-    else { byKey.set(key, { ...j, key, site, collectedAt: Date.now() }); added++; }
+    // マスト判定は保存時に付け直す（設定が変わっても一覧が正しくなるように）
+    const withMust = { ...j, must: j.must || checkMust(j, settings.mustKeys) };
+    if (byKey.has(key)) byKey.set(key, { ...byKey.get(key), ...withMust, key, site });
+    else { byKey.set(key, { ...withMust, key, site, collectedAt: Date.now() }); added++; }
   }
   const merged = [...byKey.values()];
   await chrome.storage.local.set({ jobs: merged });
@@ -38,8 +45,7 @@ async function saveJobs(incoming, site) {
 }
 
 async function updateBadge(jobs, applied) {
-  const { settings } = await getState();
-  const open = jobs.filter((j) => !applied[j.key] && !j.banned && j.score >= settings.minScore).length;
+  const open = jobs.filter((j) => !applied[j.key] && j.must && j.must.passed).length;
   await chrome.action.setBadgeText({ text: open ? String(open) : '' });
   await chrome.action.setBadgeBackgroundColor({ color: '#c2410c' });
 }
@@ -118,12 +124,9 @@ async function startCrawl() {
     await setCrawl({ done: i + 1, log: [...log] });
   }
 
-  // 合格点以上だけをタブで開く
+  // マスト条件を満たしたものだけをタブで開く
   const { jobs, applied } = await getState();
-  const winners = jobs
-    .filter((j) => !applied[j.key] && !j.banned && !(j.redFlags || []).length && j.score >= settings.minScore)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, settings.maxOpenTabs);
+  const winners = pickWinners(jobs, applied, settings);
 
   for (const j of winners) {
     try { await chrome.tabs.create({ url: j.url, active: false }); } catch { /* noop */ }
@@ -136,11 +139,19 @@ async function startCrawl() {
     found: winners.length,
     finishedAt: Date.now(),
     log: [...log, winners.length
-      ? `${settings.minScore}点以上を${winners.length}件、タブで開きました。`
-      : `${settings.minScore}点以上はありませんでした。検索キーワードを変えるか、点数の基準を下げてください。`],
+      ? `条件を満たした案件を${winners.length}件、タブで開きました。`
+      : '条件を満たす案件はありませんでした。マスト条件のチェックを減らすか、検索キーワードを増やしてください。'],
   });
   await updateBadge(jobs, applied);
   return { ok: true, opened: winners.length, crawl: final };
+}
+
+/** 届けてよい案件（マスト条件を満たし、まだ応募していないもの） */
+function pickWinners(jobs, applied, settings) {
+  return jobs
+    .filter((j) => !applied[j.key] && j.must && j.must.passed)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, settings.maxOpenTabs);
 }
 
 /* ---------- メッセージ ---------- */
@@ -175,19 +186,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         break;
 
       case 'setSettings': {
-        const { settings } = await getState();
+        const { settings, jobs, applied } = await getState();
         const next = { ...settings, ...msg.settings };
         await chrome.storage.local.set({ settings: next });
+        // マスト条件が変わったら、集めてある案件を判定し直す
+        const rejudged = jobs.map((j) => ({ ...j, must: checkMust(j, next.mustKeys) }));
+        await chrome.storage.local.set({ jobs: rejudged });
+        await updateBadge(rejudged, applied);
         sendResponse({ ok: true, settings: next });
         break;
       }
 
       case 'openTop': {
         const { jobs, applied, settings } = await getState();
-        const winners = jobs
-          .filter((j) => !applied[j.key] && !j.banned && !(j.redFlags || []).length && j.score >= settings.minScore)
-          .sort((a, b) => b.score - a.score)
-          .slice(0, settings.maxOpenTabs);
+        const winners = pickWinners(jobs, applied, settings);
         for (const j of winners) {
           try { await chrome.tabs.create({ url: j.url, active: false }); } catch { /* noop */ }
         }

@@ -14,6 +14,27 @@
  * 「完璧な案件を見つけてから応募する」のではなく「まず動く」ためのバランスにしてある。
  */
 
+/**
+ * マスト条件。
+ * 「点数が高い」ではなく「条件を満たしている」案件だけを届けるための仕組み。
+ *
+ *  NEVER_KEYS  … 1つでも「避けるべき（×）」に当たったら、その時点で除外する
+ *  DEFAULT_MUST … 「◯（または△）だと募集文で確認できている」ことを求める項目。
+ *                 ここが「不明」のままの案件は届けない。設定で増減できる。
+ */
+export const CRITERIA_KEYS = ['target', 'product', 'price', 'appointment', 'style', 'customer'];
+export const NEVER_KEYS = CRITERIA_KEYS;
+export const DEFAULT_MUST = ['target', 'product', 'appointment', 'style'];
+
+export const CRITERIA_LABELS = {
+  target: 'BtoC（個人向け）',
+  product: '無形商材（サービス）',
+  price: '商材単価 30万〜120万円',
+  appointment: 'アポイント譲渡型',
+  style: 'オンライン完結',
+  customer: '一般成人向け',
+};
+
 /** 使ってはいけない媒体 */
 export const BANNED_SITES = {
   crowdworks: 'クラウドワークスは使用禁止（実践活動ルール）。他の媒体で探してください。',
@@ -244,11 +265,45 @@ export function scoreJob(job, profile = {}) {
   return { score, verdict, redFlags, banned, checklist, reasons, askInInterview, ngItems: hardNg.map((c) => `${c.label}: ${c.detail}`) };
 }
 
-/** 一覧をおすすめ順に並べ替える。禁止・地雷は後ろに落とす */
-export function rankJobs(jobs, profile) {
+/**
+ * マスト条件を満たしているか判定する。
+ * @param {object} scored scoreJob の戻り値（checklist を含む）
+ * @param {string[]} mustKeys 「確認できていること」を求める項目
+ */
+export function checkMust(scored, mustKeys = DEFAULT_MUST) {
+  const by = Object.fromEntries((scored.checklist || []).map((c) => [c.key, c]));
+  const reasons = [];
+
+  if (scored.banned) reasons.push(scored.banned);
+  for (const f of scored.redFlags || []) reasons.push(f);
+
+  // 1つでも「避けるべき」に当たったら除外
+  const violated = NEVER_KEYS
+    .map((k) => by[k])
+    .filter((c) => c && c.status === 'ng');
+  for (const c of violated) reasons.push(`${c.label}が条件に反する（${c.detail}）`);
+
+  // 募集文で確認できていない必須項目
+  const unconfirmed = mustKeys
+    .filter((k) => !by[k] || !['ok', 'warn'].includes(by[k].status))
+    .map((k) => CRITERIA_LABELS[k] || k);
+
+  return {
+    passed: reasons.length === 0 && unconfirmed.length === 0,
+    reasons,        // 条件に反した理由（これがあると絶対に届けない）
+    unconfirmed,    // 募集文に書かれていなくて確認できなかった必須項目
+  };
+}
+
+/** 一覧をおすすめ順に並べ替える。マスト判定も付ける */
+export function rankJobs(jobs, profile, mustKeys = DEFAULT_MUST) {
   return jobs
-    .map((j) => ({ ...j, ...scoreJob(j, profile) }))
+    .map((j) => {
+      const scored = { ...j, ...scoreJob(j, profile) };
+      return { ...scored, must: checkMust(scored, mustKeys) };
+    })
     .sort((a, b) => {
+      if (a.must.passed !== b.must.passed) return a.must.passed ? -1 : 1;
       const bad = (j) => (j.banned ? 2 : j.redFlags.length ? 1 : 0);
       if (bad(a) !== bad(b)) return bad(a) - bad(b);
       return b.score - a.score;
