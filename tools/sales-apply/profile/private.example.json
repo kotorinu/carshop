@@ -1,0 +1,12 @@
+{
+  "_readme": "連絡先など、GitHubに載せたくない情報。これをコピーして private.json を作る（.gitignoreで除外済み）。フォーム自動入力に使う。",
+  "fullName": "?",
+  "fullNameKana": "?",
+  "email": "?",
+  "phone": "?",
+  "postalCode": "?",
+  "address": "?",
+  "birthday": "?",
+  "invoiceNumber": "?（インボイス登録番号。無ければ null）",
+  "bankNote": "報酬の受取口座はツールには入れない。各媒体の管理画面で直接登録すること。"
+}

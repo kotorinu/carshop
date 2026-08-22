@@ -1,0 +1,222 @@
+/**
+ * DOM操作の共通部品。
+ *
+ * 方針: サイトのHTMLは予告なく変わる。だから「決め打ちセレクタ」は当てにせず、
+ *       ①アダプタが渡すヒント → ②汎用ヒューリスティック の二段構えで拾う。
+ *       片方が壊れてももう片方で動く。
+ */
+
+export const text = (el) => (el ? (el.innerText || el.textContent || '').replace(/ /g, ' ').trim() : '');
+
+/** 候補セレクタを順に試して、最初に見つかった要素を返す */
+export function q(root, selectors) {
+  for (const s of selectors || []) {
+    try {
+      const el = root.querySelector(s);
+      if (el) return el;
+    } catch { /* 無効なセレクタは飛ばす */ }
+  }
+  return null;
+}
+
+export function qa(root, selectors) {
+  for (const s of selectors || []) {
+    try {
+      const els = [...root.querySelectorAll(s)];
+      if (els.length) return els;
+    } catch { /* noop */ }
+  }
+  return [];
+}
+
+/** 見えている要素か（非表示のダミーフォームを掴まないため） */
+export function isVisible(el) {
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  if (r.width < 2 || r.height < 2) return false;
+  const st = getComputedStyle(el);
+  return st.visibility !== 'hidden' && st.display !== 'none' && st.opacity !== '0';
+}
+
+/**
+ * React/Vue製フォームでも確実に値が入るセッター。
+ * el.value = x だけだとフレームワークが変更に気づかず、送信時に空で飛ぶ。
+ */
+export function setNativeValue(el, value) {
+  const proto = el instanceof HTMLTextAreaElement
+    ? HTMLTextAreaElement.prototype
+    : el instanceof HTMLSelectElement
+      ? HTMLSelectElement.prototype
+      : HTMLInputElement.prototype;
+  const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+  el.focus();
+  if (setter) setter.call(el, value); else el.value = value;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+  el.dispatchEvent(new KeyboardEvent('keyup', { bubbles: true }));
+  el.blur();
+}
+
+/** contenteditable（リッチテキスト欄）にも対応 */
+export function setEditableValue(el, value) {
+  if (el.isContentEditable) {
+    el.focus();
+    document.execCommand('selectAll', false, null);
+    document.execCommand('insertText', false, value);
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    return true;
+  }
+  setNativeValue(el, value);
+  return true;
+}
+
+/** 要素の見出し・ラベル・placeholder・name をまとめた検索用の文字列 */
+export function fieldSignature(el) {
+  const bits = [el.name, el.id, el.getAttribute('placeholder'), el.getAttribute('aria-label')];
+  const labelled = el.labels && el.labels.length ? text(el.labels[0]) : '';
+  const wrap = el.closest('label, .form-group, .form-row, dl, tr, li, div');
+  const near = wrap ? text(wrap).slice(0, 80) : '';
+  return [...bits, labelled, near].filter(Boolean).join(' ').toLowerCase();
+}
+
+/** 応募文を書く「一番大きい入力欄」を探す */
+export function findMessageField(hints = []) {
+  const hinted = q(document, hints);
+  if (hinted && isVisible(hinted)) return hinted;
+
+  const candidates = [
+    ...document.querySelectorAll('textarea, [contenteditable="true"]'),
+  ].filter(isVisible);
+  if (!candidates.length) return null;
+
+  const keywords = ['提案', '応募', 'メッセージ', '自己紹介', 'アピール', '本文', 'proposal', 'message', 'body', 'comment', 'apply'];
+  const scored = candidates.map((el) => {
+    const sig = fieldSignature(el);
+    const r = el.getBoundingClientRect();
+    let s = Math.min(r.width * r.height / 5000, 40);         // 大きい欄ほど本命
+    if (keywords.some((k) => sig.includes(k))) s += 50;
+    if (sig.includes('検索') || sig.includes('search')) s -= 60;
+    return { el, s };
+  }).sort((a, b) => b.s - a.s);
+  return scored[0].s > 0 ? scored[0].el : null;
+}
+
+/** ラベルの言葉から入力欄を探す（氏名・メール・希望金額など） */
+export function findFieldByWords(words, types = ['input', 'textarea', 'select']) {
+  const els = [...document.querySelectorAll(types.join(','))].filter(isVisible)
+    .filter((el) => !['hidden', 'submit', 'button', 'file', 'password'].includes(el.type));
+  for (const el of els) {
+    const sig = fieldSignature(el);
+    if (words.some((w) => sig.includes(w.toLowerCase()))) return el;
+  }
+  return null;
+}
+
+/** 送信ボタンを探す（押さない。場所を教えて光らせるだけ） */
+export function findSubmitButton(hints = []) {
+  const hinted = q(document, hints);
+  if (hinted && isVisible(hinted)) return hinted;
+  const words = ['応募する', '提案する', '送信', '応募', '確認画面', '確認する', '送る'];
+  const els = [...document.querySelectorAll('button, input[type="submit"], a[role="button"]')].filter(isVisible);
+  return els.find((el) => {
+    const t = `${text(el)} ${el.value || ''}`;
+    return words.some((w) => t.includes(w));
+  }) || null;
+}
+
+/** 送信ボタンを目立たせる（クリックはしない） */
+export function highlight(el) {
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const prev = el.style.cssText;
+  el.style.cssText += ';outline:4px solid #ea580c;outline-offset:3px;border-radius:6px;transition:outline .2s;';
+  setTimeout(() => { el.style.cssText = prev; }, 6000);
+}
+
+/* ---------- 一覧ページから案件を拾う汎用エンジン ---------- */
+
+/** リンクから見て、案件1件分のまとまりになっている親要素を探す */
+function cardOf(link) {
+  let el = link;
+  for (let i = 0; i < 6 && el.parentElement; i++) {
+    el = el.parentElement;
+    const t = text(el);
+    if (t.length > 80) return el;
+  }
+  return link.parentElement || link;
+}
+
+const num = (s) => {
+  const m = String(s || '').replace(/[,，]/g, '').match(/(\d+)/);
+  return m ? parseInt(m[1], 10) : undefined;
+};
+
+/**
+ * 一覧ページを走査して案件を配列で返す。
+ * @param {RegExp} detailPattern 詳細ページURLの形（例: /work\/detail\/(\d+)/）
+ */
+export function scrapeListGeneric(detailPattern, opt = {}) {
+  const seen = new Set();
+  const jobs = [];
+  for (const a of document.querySelectorAll('a[href]')) {
+    const href = a.href;
+    const m = detailPattern.exec(href);
+    if (!m) continue;
+    const id = m[1] || href;
+    if (seen.has(id)) continue;
+
+    const card = cardOf(a);
+    const cardText = text(card);
+    if (cardText.length < 40) continue;   // ヘッダーのリンク等を除外
+    seen.add(id);
+
+    const title = text(q(card, ['h2 a', 'h3 a', 'h2', 'h3', '[class*="title"]'])) || text(a);
+    const budget = (cardText.match(/(?:予算|報酬|価格|時給|単価)[^\n]{0,40}/) || [])[0]
+      || (cardText.match(/[\d,]+\s*(?:万)?円[^\n]{0,20}/) || [])[0] || '';
+    const applicants = num((cardText.match(/(?:提案|応募)[^\n]{0,6}?(\d+)\s*(?:人|件)/) || [])[1]);
+
+    jobs.push({
+      id: String(id),
+      url: href.split('?')[0],
+      title: title.replace(/\s+/g, ' ').trim().slice(0, 160),
+      description: cardText.slice(0, 1200),
+      budget: budget.trim(),
+      applicants,
+      clientVerified: /本人確認済|認証済/.test(cardText),
+      listedAt: Date.now(),
+      ...(opt.extra ? opt.extra(card, a) : {}),
+    });
+  }
+  return jobs;
+}
+
+/** 詳細ページから1件分を拾う汎用エンジン */
+export function scrapeDetailGeneric(hints = {}) {
+  const title = text(q(document, hints.title || []) || document.querySelector('h1')) || document.title;
+
+  // 本文は「ページ全体ではないが、いちばん中身の詰まったブロック」を採る。
+  // ページ全体(body)を掴むとヘッダー・広告まで応募文の材料に混ざるので上限を掛ける。
+  const bodyLen = text(document.body).length || 1;
+  let best = null; let bestLen = 0;
+  for (const el of document.querySelectorAll('section, article, main, div[class*="detail"], div[class*="description"], div[class*="body"], div[class*="content"]')) {
+    if (!isVisible(el)) continue;
+    const t = text(el);
+    if (t.length < 200 || t.length > bodyLen * 0.8) continue;
+    if (t.length > bestLen) { best = el; bestLen = t.length; }
+  }
+  const description = text(q(document, hints.description || []) || best).slice(0, 8000);
+  const page = text(document.body);
+  const budget = text(q(document, hints.budget || []))
+    || (page.match(/(?:予算|報酬|固定報酬|時間単価)[^\n]{0,40}/) || [])[0] || '';
+  const applicants = num((page.match(/(?:提案|応募)[^\n]{0,6}?(\d+)\s*(?:人|件)/) || [])[1]);
+
+  return {
+    id: (location.pathname.match(/(\d{4,})/) || [])[1] || location.pathname,
+    url: location.href.split('?')[0],
+    title: title.replace(/\s+/g, ' ').trim(),
+    description,
+    budget: budget.trim(),
+    applicants,
+    clientVerified: /本人確認済|認証済/.test(page),
+  };
+}

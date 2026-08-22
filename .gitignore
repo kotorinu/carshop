@@ -16,3 +16,10 @@ content/renders/
 !**/.gitkeep
 video/build/
 tools/line-harness-seed/.notify-state.json
+
+# 営業応募ツール（個人情報・下書き）
+tools/sales-apply/profile/private.json
+tools/sales-apply/profile/profile.local.json
+tools/sales-apply/drafts/*
+!tools/sales-apply/drafts/.gitkeep
+tools/sales-apply/data/

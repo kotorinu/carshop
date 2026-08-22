@@ -130,3 +130,16 @@ carshop/
 | 「**在庫更新して**」 | 在庫カルーセルをcars.jsonから最新化 |
 | 「**◯◯売れた**」 | 掲載削除リマインド＋売約報告投稿＋口コミ依頼の段取り |
 | 「**△△さんが友だち追加した**」 | 通知の宛先にその人を追加 |
+
+## 💼 営業代行の応募を自動化する（2026-08-22 追加）
+
+営業代行案件の **探す → 選ぶ → 応募文を書く → フォームに入れる** を自動化するツール一式。
+送信ボタンだけ自分で押す設計（誤送信を防ぐため、そこだけは自動化しない）。
+
+| やりたいこと | 場所 |
+|---|---|
+| 使い方（Chrome拡張の入れ方から） | [`tools/sales-apply/README.md`](../tools/sales-apply/README.md) |
+| 自分の情報（応募文の材料） | `tools/sales-apply/profile/profile.json` |
+| まだ埋まっていない項目を確認 | `npm run apply:doctor` |
+| 文体のルール（AI感を消す決まりごと） | [`tools/sales-apply/profile/voice.md`](../tools/sales-apply/profile/voice.md) |
+| Claudeに答えてほしい質問リスト | [`tools/sales-apply/質問リスト.md`](../tools/sales-apply/質問リスト.md) |

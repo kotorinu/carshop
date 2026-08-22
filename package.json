@@ -18,7 +18,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "make:video": "node video/make-video.mjs",
     "sync:inventory": "node video/sync-inventory.mjs",
-    "kpi": "node video/kpi-digest.mjs"
+    "kpi": "node video/kpi-digest.mjs",
+    "apply": "node tools/sales-apply/cli.mjs",
+    "apply:doctor": "node tools/sales-apply/cli.mjs doctor"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",

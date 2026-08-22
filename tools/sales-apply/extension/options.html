@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>営業応募オートパイロット — 設定</title>
+<style>
+  body { max-width: 860px; margin: 0 auto; padding: 28px 20px 60px; font-family: "Hiragino Sans","Noto Sans JP",system-ui,sans-serif; color: #1c1917; background: #fffdfa; line-height: 1.8; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  p.lead { color: #78716c; font-size: 13px; margin: 0 0 24px; }
+  h2 { font-size: 15px; margin: 28px 0 8px; padding-bottom: 6px; border-bottom: 2px solid #1c1917; }
+  label { display: block; font-size: 12px; font-weight: 700; margin: 12px 0 4px; }
+  .hint { font-weight: 400; color: #78716c; }
+  input, textarea { width: 100%; box-sizing: border-box; padding: 9px 10px; font: inherit; font-size: 13px; border: 1px solid #d6d3d1; border-radius: 8px; background: #fff; }
+  textarea { min-height: 90px; resize: vertical; }
+  textarea.json { min-height: 260px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.6; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+  .bar { position: sticky; bottom: 0; background: #fffdfa; padding: 14px 0; border-top: 1px solid #f0ece5; display: flex; gap: 8px; align-items: center; margin-top: 24px; }
+  button { padding: 9px 16px; border-radius: 8px; border: 1px solid #1c1917; background: #1c1917; color: #fff; font-weight: 700; cursor: pointer; font-size: 13px; }
+  button.sub { background: #fff; color: #1c1917; }
+  #msg { font-size: 12px; color: #15803d; font-weight: 700; }
+  .warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 10px 12px; font-size: 12px; margin: 10px 0; }
+  pre.preview { background: #fff; border: 1px solid #e7e0d6; border-radius: 10px; padding: 14px; white-space: pre-wrap; font: inherit; font-size: 13px; }
+</style>
+
+<h1>設定 — あなたの情報</h1>
+<p class="lead">ここに書いた内容だけで応募文が作られます。AIが勝手に事実を作ることはありません。<br>
+この情報はこのブラウザの中にだけ保存されます（外部に送信されません）。</p>
+
+<div class="warn">
+  <b>先に埋めてほしいところ</b>：稼働時間・連絡手段・返信の速さ・開始日。ここが空だと応募文に【要記入】が残ります。
+</div>
+
+<h2>1. 基本</h2>
+<div class="grid">
+  <div><label>表示名 <span class="hint">（媒体のプロフィール名）</span><input id="displayName"></label></div>
+  <div><label>本名 <span class="hint">（フォーム自動入力用）</span><input id="fullName"></label></div>
+  <div><label>フリガナ<input id="fullNameKana"></label></div>
+  <div><label>居住地 <span class="hint">（例: 大阪府）</span><input id="location"></label></div>
+  <div><label>メールアドレス<input id="email"></label></div>
+  <div><label>電話番号<input id="phone"></label></div>
+  <div><label>郵便番号<input id="postalCode"></label></div>
+  <div><label>住所<input id="address"></label></div>
+</div>
+<label>いま何をしている人か <span class="hint">（名詞で。例: 大阪・寝屋川の中古車販売店の集客とDX）</span><input id="businessSummary"></label>
+<label>自己紹介の芯 <span class="hint">（1〜2文。肩書きより「やっていること」）</span><textarea id="selfIntroCore"></textarea></label>
+
+<h2>2. 稼働条件</h2>
+<div class="grid">
+  <div><label>稼働できる時間<span class="hint">（例: 平日19〜23時と土日終日）</span><input id="hours"></label></div>
+  <div><label>連絡手段<span class="hint">（例: チャットワーク・LINE）</span><input id="contact"></label></div>
+  <div><label>返信の速さ<span class="hint">（例: 平日日中は1時間以内）</span><input id="responseTime"></label></div>
+  <div><label>開始できる日<span class="hint">（例: 即日）</span><input id="startDate"></label></div>
+  <div><label>報酬の下限（円）<span class="hint">これを下回る案件は減点される</span><input id="minReward" type="number"></label></div>
+  <div><label>フォームに入れる希望金額<span class="hint">（空でOK）</span><input id="proposedAmount"></label></div>
+</div>
+
+<h2>3. 実績（応募文の箇条書きになる）</h2>
+<label>1行に1つ。案件に合うものが自動で選ばれます。
+  <textarea id="achievements" style="min-height:150px"></textarea>
+</label>
+
+<h2>4. 上級者向け（JSONを直接編集）</h2>
+<p class="lead" style="margin:0 0 8px">リポジトリの <code>tools/sales-apply/profile/profile.json</code> をそのまま貼り付けても読み込めます。</p>
+<textarea id="json" class="json"></textarea>
+
+<h2>5. 応募文のプレビュー</h2>
+<button class="sub" id="preview">サンプル案件で試しに書いてみる</button>
+<pre class="preview" id="previewOut">（ボタンを押すと出ます）</pre>
+
+<div class="bar">
+  <button id="save">保存する</button>
+  <button class="sub" id="loadJson">JSON欄の内容を上のフォームに反映</button>
+  <button class="sub" id="dumpJson">上のフォームの内容をJSON欄に出す</button>
+  <span id="msg"></span>
+</div>
+<script src="options.js"></script>
