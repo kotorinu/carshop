@@ -22,11 +22,42 @@ async function load() {
   render();
 }
 
+/**
+ * 対象外になった案件が「どの条件で止まっているか」を数える。
+ * 候補が0件のとき、どのチェックを外せば何件増えるかが分かるようにするため。
+ */
+function blockingCounts() {
+  const jobs = (state.jobs || []).filter((j) => j.status === 'rejected' && !j.banned && !(j.redFlags || []).length);
+  const byLabel = {};
+  const violated = {};
+  for (const j of jobs) {
+    for (const u of (j.must && j.must.unconfirmed) || []) byLabel[u] = (byLabel[u] || 0) + 1;
+    for (const c of j.checklist || []) if (c.status === 'ng') violated[c.label] = (violated[c.label] || 0) + 1;
+  }
+  // 「このチェックだけを外したら候補になる件数」も数える
+  const wouldPass = {};
+  for (const k of state.settings.mustKeys || []) {
+    const label = LABELS[k];
+    wouldPass[k] = jobs.filter((j) => {
+      const un = (j.must && j.must.unconfirmed) || [];
+      const ng = (j.checklist || []).some((c) => c.status === 'ng');
+      return !ng && un.length === 1 && un[0] === label;
+    }).length;
+  }
+  return { byLabel, violated, wouldPass, total: jobs.length };
+}
+
 function renderMust() {
   const on = new Set(state.settings.mustKeys || []);
-  $('#mustBox').innerHTML = ALL_KEYS.map((k) => `
-    <label><input type="checkbox" data-key="${k}" ${on.has(k) ? 'checked' : ''}>${esc(LABELS[k])}</label>
-  `).join('');
+  const b = blockingCounts();
+  $('#mustBox').innerHTML = ALL_KEYS.map((k) => {
+    const n = b.byLabel[LABELS[k]] || 0;
+    const plus = b.wouldPass[k] || 0;
+    const note = on.has(k) && n
+      ? `<span class="blk">${n}件が未確認${plus ? `／外すと+${plus}件` : ''}</span>` : '';
+    return `<label><input type="checkbox" data-key="${k}" ${on.has(k) ? 'checked' : ''}>${esc(LABELS[k])}${note}</label>`;
+  }).join('');
+  renderWhyEmpty(b);
   $('#mustBox').querySelectorAll('input').forEach((el) => {
     el.onchange = async () => {
       const keys = [...$('#mustBox').querySelectorAll('input:checked')].map((x) => x.dataset.key);
@@ -37,6 +68,34 @@ function renderMust() {
 }
 
 /* ---------- 一覧 ---------- */
+
+/** 候補が0件のとき、何が起きているかをはっきり書く */
+function renderWhyEmpty(b) {
+  const box = $('#whyEmpty');
+  if (!box) return;
+  const n = JS ? JS.summarize(state.jobs || []) : {};
+  if ((n.candidate || 0) + (n.drafted || 0) > 0 || !(state.jobs || []).length) { box.hidden = true; return; }
+
+  const lines = [];
+  const violatedTop = Object.entries(b.violated).sort((a, c) => c[1] - a[1]).slice(0, 3);
+  const unconfirmedTop = Object.entries(b.byLabel).sort((a, c) => c[1] - a[1]).slice(0, 3);
+  lines.push(`集めた${(state.jobs || []).length}件はすべて対象外でした。内訳はこうです。`);
+  if (violatedTop.length) {
+    lines.push(`<b>条件に反していたもの</b>: ${violatedTop.map(([k, v]) => `${esc(k)} ${v}件`).join('、')}`);
+  }
+  if (unconfirmedTop.length) {
+    lines.push(`<b>募集文で確認できなかったもの</b>: ${unconfirmedTop.map(([k, v]) => `${esc(k)} ${v}件`).join('、')}`);
+  }
+  const best = Object.entries(b.wouldPass).filter(([, v]) => v > 0).sort((a, c) => c[1] - a[1])[0];
+  if (best) {
+    lines.push(`→ <b>「${esc(LABELS[best[0]])}」のチェックを外すと ${best[1]}件が候補になります。</b>`);
+  } else {
+    lines.push('→ チェックを1つ外しても候補は増えません。検索キーワードを変えたほうが早いです。');
+  }
+  lines.push('<span class="dim">「対象外」タブで1件ずつ理由を確認できます。CSVで書き出してClaudeに渡すと、読み取りの精度を上げられます。</span>');
+  box.innerHTML = lines.join('<br>');
+  box.hidden = false;
+}
 
 function renderCounts() {
   const n = JS ? JS.summarize(state.jobs || []) : {};

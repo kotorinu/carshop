@@ -327,13 +327,27 @@ const statusOf = async (id) => {
   const f = js.find((j) => Number(String(j.id)) === id);
   return f ? f.status : null;
 };
+/** 状態が落ち着くまで待つ（応募文の作成は各タブで非同期に走るため） */
+const waitStatus = async (id, want, sec = 25) => {
+  for (let i = 0; i < sec; i++) {
+    if ((await statusOf(id)) === want) return want;
+    await sleep(1000);
+  }
+  return statusOf(id);
+};
 
-check('★応募文を作った案件は「書きかけ」になる', (await statusOf(1)) === 'drafted', String(await statusOf(1)));
+check('★応募文を作った案件は「書きかけ」になる', (await waitStatus(1, 'drafted')) === 'drafted', String(await statusOf(1)));
 check('★開いた案件はすべて「書きかけ」になる（開いた時点で応募文ができている）',
-  (await statusOf(2)) === 'drafted', String(await statusOf(2)));
+  (await waitStatus(2, 'drafted')) === 'drafted', String(await statusOf(2)));
 check('条件に合わない案件は「対象外」', (await statusOf(3)) === 'rejected' || (await statusOf(3)) === null);
 {
-  const all = await readJobs();
+  // 開いたタブが応募文を作り終えるまで待つ（作成は各タブで非同期に走る）
+  let all = [];
+  for (let i = 0; i < 30; i++) {
+    all = await readJobs();
+    if (all.filter((j) => j.status === 'drafted').length >= EXPECT_PASS.length) break;
+    await sleep(1000);
+  }
   const n = all.reduce((a, j) => ({ ...a, [j.status]: (a[j.status] || 0) + 1 }), {});
   check('条件を満たした案件がすべて書きかけになっている',
     (n.drafted || 0) === EXPECT_PASS.length, JSON.stringify(n));
@@ -430,6 +444,31 @@ await opt.waitForTimeout(800);
 const saved = await opt.evaluate(() => new Promise((r) => chrome.storage.local.get({ profile: null }, (o) => r(o.profile))));
 check('設定が保存される', saved && saved.availability.responseTime === '平日は2時間以内',
   saved ? saved.availability.responseTime : 'null');
+
+console.log('\n=== ⑪の2 候補が0件のときに理由を出す ===');
+{
+  // わざと全部落ちる設定にして、案内が出るか見る
+  await popup.evaluate(() => new Promise((r) => chrome.runtime.sendMessage(
+    { type: 'setSettings', settings: { mustKeys: ['target', 'product', 'price', 'appointment', 'style', 'customer'] } }, r)));
+  await popup.reload();
+  await popup.waitForTimeout(1200);
+  const txt = await popup.locator('#whyEmpty').textContent().catch(() => '');
+  const shown = await popup.locator('#whyEmpty').isVisible().catch(() => false);
+  // 書きかけが残っている場合は案内を出さない仕様なので、状態を確認してから判定
+  const summary = await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ jobs: [] }, (o) => {
+    const n = {}; o.jobs.forEach((j) => { n[j.status] = (n[j.status] || 0) + 1; }); r(n);
+  })));
+  if ((summary.candidate || 0) + (summary.drafted || 0) === 0) {
+    check('候補0件のとき理由が出る', shown && txt.includes('対象外でした'), txt.slice(0, 80));
+    check('どのチェックを外せば何件増えるかが出る', /チェックを外すと \d+件|候補は増えません/.test(txt), txt.slice(0, 120));
+  } else {
+    check('書きかけが残っているときは案内を出さない', !shown, JSON.stringify(summary));
+  }
+  // マスト条件を元に戻す
+  await popup.evaluate(() => new Promise((r) => chrome.runtime.sendMessage(
+    { type: 'setSettings', settings: { mustKeys: ['target', 'product', 'appointment', 'style'] } }, r)));
+  await popup.waitForTimeout(600);
+}
 
 console.log('\n=== ⑫の2 読み取り診断（実サイトで使う道具）===');
 {
