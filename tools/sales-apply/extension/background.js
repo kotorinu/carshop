@@ -1,4 +1,5 @@
 import { DEFAULT_MUST, checkMust } from './core/scoring.js';
+import { allSearchUrls } from './content/adapters/index.js';
 
 /**
  * サービスワーカー。保存と、自動巡回の司令塔。
@@ -16,7 +17,8 @@ const DEFAULT_STATE = {
   // minScore（点数のしきい値）ではなく、マスト条件で絞る。
   // 条件を満たさない案件は、点数がいくら高くても届けない。
   settings: { mustKeys: DEFAULT_MUST, maxOpenTabs: 8 },
-  crawl: { running: false, done: 0, total: 0, log: [], finishedAt: 0, opened: 0, found: 0 },
+  crawl: { running: false, done: 0, total: 0, log: [], finishedAt: 0, opened: 0, found: 0, error: '' },
+  lastError: null,
 };
 
 async function getState() {
@@ -53,6 +55,16 @@ async function updateBadge(jobs, applied) {
 /* ---------- 自動巡回 ---------- */
 
 let crawlWaiters = new Map();   // tabId → resolve
+let keepAliveTimer = null;
+
+/**
+ * 巡回中にサービスワーカーが眠らないようにする。
+ * MV3のサービスワーカーは何もしないと30秒で止められ、巡回が途中で消える。
+ */
+function keepAlive(on) {
+  clearInterval(keepAliveTimer);
+  keepAliveTimer = on ? setInterval(() => chrome.runtime.getPlatformInfo(() => {}), 20000) : null;
+}
 
 async function setCrawl(patch) {
   const { crawl } = await getState();
@@ -107,12 +119,15 @@ async function crawlOne(target) {
 async function startCrawl() {
   const { crawl, settings } = await getState();
   if (crawl.running) return { error: 'すでに巡回中です' };
+  keepAlive(true);
 
-  const mod = await import(chrome.runtime.getURL('content/adapters/index.js'));
-  const targets = mod.allSearchUrls();
-  if (!targets.length) return { error: '巡回する検索URLがありません' };
+  const targets = allSearchUrls();
+  if (!targets.length) { keepAlive(false); return { error: '巡回する検索URLがありません' }; }
 
-  await setCrawl({ running: true, done: 0, total: targets.length, log: [], opened: 0, found: 0, finishedAt: 0 });
+  await setCrawl({
+    running: true, done: 0, total: targets.length, opened: 0, found: 0, finishedAt: 0, error: '',
+    log: [`巡回する検索ページ: ${targets.length}件`],
+  });
 
   const log = [];
   for (let i = 0; i < targets.length; i++) {
@@ -143,6 +158,7 @@ async function startCrawl() {
       : '条件を満たす案件はありませんでした。マスト条件のチェックを減らすか、検索キーワードを増やしてください。'],
   });
   await updateBadge(jobs, applied);
+  keepAlive(false);
   return { ok: true, opened: winners.length, crawl: final };
 }
 
@@ -172,6 +188,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   (async () => {
+    try {
     switch (msg.type) {
       case 'getState':
         sendResponse(await getState());
@@ -181,9 +198,16 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         sendResponse(await saveJobs(msg.jobs, msg.site));
         break;
 
-      case 'startCrawl':
-        sendResponse(await startCrawl());
+      case 'startCrawl': {
+        const { crawl } = await getState();
+        if (crawl.running) { sendResponse({ error: 'すでに巡回中です' }); break; }
+        // 巡回は数分かかる。待たせずに開始だけ返して、進捗は storage 経由で見せる
+        startCrawl().catch(async (e) => {
+          await setCrawl({ running: false, error: String(e && e.message || e).slice(0, 200) });
+        });
+        sendResponse({ ok: true, started: true });
         break;
+      }
 
       case 'setSettings': {
         const { settings, jobs, applied } = await getState();
@@ -236,6 +260,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       default:
         sendResponse({ error: `unknown message: ${msg.type}` });
+    }
+    } catch (e) {
+      // 例外で黙って固まるのが一番困る。必ず理由を返す
+      const detail = String((e && e.stack) || e).slice(0, 300);
+      await chrome.storage.local.set({ lastError: { at: Date.now(), where: msg.type, detail } });
+      await setCrawl({ running: false, error: detail });
+      sendResponse({ error: detail });
     }
   })();
   return true;   // 非同期で返すので true

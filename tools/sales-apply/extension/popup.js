@@ -77,17 +77,38 @@ function render() {
 
 /* ---------- 進捗 ---------- */
 
+let pollTimer = null;
+
 function renderProgress(crawl) {
-  if (!crawl || (!crawl.running && !crawl.finishedAt)) { $('#progress').hidden = true; return; }
-  $('#progress').hidden = false;
-  const pct = crawl.total ? Math.round((crawl.done / crawl.total) * 100) : 0;
-  $('#pBar').style.width = `${pct}%`;
-  $('#pTitle').textContent = crawl.running
-    ? `巡回中… ${crawl.done}/${crawl.total} サイト`
-    : `完了（${crawl.opened || 0}件を開きました）`;
-  $('#pLog').innerHTML = (crawl.log || []).slice(-6).map((l) => esc(l)).join('<br>');
+  crawl = crawl || {};
+  const show = crawl.running || crawl.finishedAt || crawl.error;
+  $('#progress').hidden = !show;
+  if (show) {
+    const pct = crawl.total ? Math.round((crawl.done / crawl.total) * 100) : 0;
+    $('#pBar').style.width = `${pct}%`;
+    $('#pTitle').textContent = crawl.error
+      ? '⚠ エラーで止まりました'
+      : crawl.running
+        ? `巡回中… ${crawl.done}/${crawl.total} サイト`
+        : `完了（${crawl.opened || 0}件を開きました）`;
+    const lines = [...(crawl.log || []).slice(-8)];
+    if (crawl.error) lines.push(`<span style="color:#b91c1c">${esc(crawl.error)}</span>`);
+    $('#pLog').innerHTML = lines.map((l) => (l.startsWith('<span') ? l : esc(l))).join('<br>');
+  }
   $('#auto').disabled = !!crawl.running;
   $('#auto').textContent = crawl.running ? '巡回中…（閉じてもそのまま進みます）' : '🔍 条件に合う案件を探して開く';
+
+  // 巡回中はメッセージだけに頼らず、保存された状態を見に行く
+  clearInterval(pollTimer);
+  if (crawl.running) {
+    pollTimer = setInterval(async () => {
+      const st = await send({ type: 'getState' });
+      if (!st) return;
+      state = st;
+      renderProgress(st.crawl);
+      render();
+    }, 1500);
+  }
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
@@ -102,8 +123,34 @@ chrome.runtime.onMessage.addListener((msg) => {
 $('#auto').onclick = async () => {
   $('#auto').disabled = true;
   $('#auto').textContent = '巡回を始めています…';
-  const res = await send({ type: 'startCrawl' });
-  if (res?.error) { $('#hint').textContent = res.error; $('#auto').disabled = false; }
+  $('#progress').hidden = false;
+  $('#pTitle').textContent = '巡回を開始しています…';
+  $('#pLog').textContent = '';
+
+  // 返事が来ないまま固まらないよう、5秒で見張る
+  const watchdog = setTimeout(() => {
+    $('#pTitle').textContent = '⚠ 反応がありません';
+    $('#pLog').innerHTML = '拡張機能の再読み込み（chrome://extensions のリロードボタン）を試してください。'
+      + '<br>それでも直らないときは、この画面をClaudeに見せてください。';
+    $('#auto').disabled = false;
+    $('#auto').textContent = '🔍 条件に合う案件を探して開く';
+  }, 5000);
+
+  let res;
+  try {
+    res = await send({ type: 'startCrawl' });
+  } catch (e) {
+    res = { error: String(e) };
+  }
+  clearTimeout(watchdog);
+
+  if (res && res.error) {
+    $('#pTitle').textContent = '⚠ 開始できませんでした';
+    $('#pLog').innerHTML = `<span style="color:#b91c1c">${esc(res.error)}</span>`;
+    $('#auto').disabled = false;
+    $('#auto').textContent = '🔍 条件に合う案件を探して開く';
+    return;
+  }
   await load();
 };
 
