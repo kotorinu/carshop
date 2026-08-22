@@ -35,6 +35,15 @@ textarea {
 }
 .warn { background: #fff7ed; border: 1px solid #fed7aa; border-radius: 8px; padding: 8px 10px; font-size: 12px; }
 .warn b { color: #c2410c; }
+.banned { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #991b1b; }
+.banned b { display: block; font-size: 13px; margin-bottom: 3px; }
+table.check { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+table.check td { padding: 3px 4px; border-bottom: 1px solid #f0ece5; vertical-align: top; }
+table.check td.k { width: 74px; color: #78716c; white-space: nowrap; }
+table.check td.s { width: 18px; text-align: center; font-weight: 700; }
+td.s.ok { color: #15803d; } td.s.ng { color: #b91c1c; } td.s.warn { color: #a16207; } td.s.unknown { color: #a8a29e; }
+.h { font-size: 11px; font-weight: 700; color: #78716c; margin-top: 2px; }
+ol.ask { margin: 2px 0 0; padding-left: 18px; font-size: 11.5px; color: #57534e; }
 .ok { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 10px; font-size: 12px; }
 ul.jobs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 ul.jobs li { border: 1px solid #e7e0d6; border-radius: 9px; padding: 8px 10px; background: #fff; }
@@ -63,7 +72,10 @@ export function mountPanel(handlers) {
   root.append(wrap);
   document.documentElement.append(host);
 
-  let state = { mode: '', site: '', jobs: [], draft: '', warnings: [], message: '', busy: false, minimized: false };
+  let state = {
+    mode: '', site: '', jobs: [], draft: '', warnings: [], message: '',
+    banned: '', checklist: [], askInInterview: [], busy: false, minimized: false,
+  };
 
   function render() {
     wrap.classList.toggle('min', state.minimized);
@@ -91,6 +103,13 @@ export function mountPanel(handlers) {
     mode.textContent = `${state.site}｜${state.mode}`;
     body.append(mode);
 
+    if (state.banned) {
+      const b = document.createElement('div');
+      b.className = 'banned';
+      b.innerHTML = `<b>🚫 この媒体は使用禁止です</b>${escapeHtml(state.banned)}`;
+      body.append(b);
+    }
+
     const row = document.createElement('div');
     row.className = 'row';
     for (const b of handlers.buttons(state)) {
@@ -115,6 +134,30 @@ export function mountPanel(handlers) {
       w.className = 'warn';
       w.innerHTML = `<b>直したほうがいい点</b><br>` + state.warnings.map((x) => `・${escapeHtml(x)}`).join('<br>');
       body.append(w);
+    }
+
+    if (state.checklist.length) {
+      const h = document.createElement('div');
+      h.className = 'h';
+      h.textContent = '案件チェックリスト';
+      const t = document.createElement('table');
+      t.className = 'check';
+      const icon = { ok: '◯', ng: '×', warn: '△', unknown: '?' };
+      t.innerHTML = state.checklist.map((c) => `
+        <tr><td class="k">${escapeHtml(c.label)}</td>
+        <td class="s ${escapeHtml(c.status)}">${icon[c.status] || '?'}</td>
+        <td>${escapeHtml(c.detail)}</td></tr>`).join('');
+      body.append(h, t);
+    }
+
+    if (state.askInInterview.length) {
+      const h = document.createElement('div');
+      h.className = 'h';
+      h.textContent = '面接で必ず聞くこと';
+      const ol = document.createElement('ol');
+      ol.className = 'ask';
+      ol.innerHTML = state.askInInterview.map((q) => `<li>${escapeHtml(q)}</li>`).join('');
+      body.append(h, ol);
     }
 
     if (state.draft) {

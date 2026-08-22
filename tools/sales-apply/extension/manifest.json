@@ -2,32 +2,59 @@
   "manifest_version": 3,
   "name": "営業応募オートパイロット",
   "version": "1.0.0",
-  "description": "クラウドソーシングの営業代行案件を集めて、点数を付けて、応募文を自分の言葉で作って、フォームまで自動入力する。送信ボタンだけ自分で押す。",
-  "permissions": ["storage", "activeTab", "scripting", "clipboardWrite"],
+  "description": "実践活動ルール(BtoC・無形商材・アポイント譲渡型)に合う営業代行案件だけを集めて採点し、応募文を自分の言葉で作ってフォームまで自動入力する。送信ボタンだけ自分で押す。",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "clipboardWrite"
+  ],
   "host_permissions": [
     "https://www.lancers.jp/*",
-    "https://crowdworks.jp/*",
-    "https://coconala.com/*"
+    "https://*.aw-anotherworks.com/*",
+    "https://aw-anotherworks.com/*",
+    "https://*.anotherworks.co.jp/*",
+    "https://jp.indeed.com/*",
+    "https://crowdworks.jp/*"
   ],
-  "optional_host_permissions": ["https://*/*"],
-  "background": { "service_worker": "background.js", "type": "module" },
-  "action": { "default_popup": "popup.html", "default_title": "営業応募オートパイロット" },
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "営業応募オートパイロット"
+  },
   "options_page": "options.html",
   "content_scripts": [
     {
       "matches": [
         "https://www.lancers.jp/*",
-        "https://crowdworks.jp/*",
-        "https://coconala.com/*"
+        "https://*.aw-anotherworks.com/*",
+        "https://aw-anotherworks.com/*",
+        "https://*.anotherworks.co.jp/*",
+        "https://jp.indeed.com/*",
+        "https://crowdworks.jp/*"
       ],
-      "js": ["content/boot.js"],
+      "js": [
+        "content/boot.js"
+      ],
       "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["core/*.js", "content/*.js", "content/adapters/*.js"],
-      "matches": ["https://*/*"]
+      "resources": [
+        "core/*.js",
+        "content/*.js",
+        "content/adapters/*.js"
+      ],
+      "matches": [
+        "https://*/*"
+      ]
     }
   ]
 }

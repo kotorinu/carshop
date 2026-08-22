@@ -12,6 +12,7 @@ import {
   CATEGORIES, CATEGORY_KEYWORDS, CATEGORY_LABELS,
   OPENERS, HOOK_FALLBACK, SELF_INTRO, CAPABILITY_BLOCKS,
   MOTIVATION, PROOF_OF_HUNGER, AVAILABILITY, CLOSERS, QUESTIONS,
+  NEWBIE_HONESTY, EXPERIENCED,
   NG_WORDS, MAX_SENTENCE_LEN,
 } from './phrases.js';
 
@@ -164,39 +165,47 @@ export function composeApplication(job, profile, opt = {}) {
     startDate: p.availability && p.availability.startDate,
   };
 
-  const paras = [];
+  vars.salesExperience = p.salesExperience;
 
-  // 1. 書き出し（案件名 + フック）
-  paras.push(fill(pick(OPENERS, rnd), vars, missing));
+  // 段落は「名前つき」で作る。文字数上限のある媒体では、落としてよい段落から削るため。
+  const paras = [];
+  const add = (key, textValue) => { if (textValue) paras.push({ key, text: textValue }); };
+
+  // 1. 書き出し（案件名 + 募集文から拾ったフック）
+  add('opener', fill(pick(OPENERS, rnd), vars, missing));
 
   // 2. 自己紹介
-  paras.push(fill(pick(SELF_INTRO, rnd), vars, missing));
+  add('intro', fill(pick(SELF_INTRO, rnd), vars, missing));
 
-  // 3. 実績（profileから、カテゴリに合うものを最大3つ）
+  // 3. 実績（profileから、案件の型に合うものを最大3つ）
   const achievements = selectAchievements(p.achievements || [], category, rnd, 3);
   if (achievements.length) {
-    paras.push(['できることを具体的に書きます。', ...achievements.map((a) => `・${a}`)].join('\n'));
+    add('achievements', ['できることを具体的に書きます。', ...achievements.map((a) => `・${a}`)].join('\n'));
   }
 
-  // 4. カテゴリ別の仕事の進め方
-  const caps = CAPABILITY_BLOCKS[category] || CAPABILITY_BLOCKS.unknown;
-  paras.push(pick(caps, rnd));
+  // 4. 仕事の進め方（案件の型ごと）
+  add('capability', pick(CAPABILITY_BLOCKS[category] || CAPABILITY_BLOCKS.unknown, rnd));
 
-  // 5. 熱量（主役）
-  paras.push(`${pick(MOTIVATION, rnd)}\n${pick(PROOF_OF_HUNGER, rnd)}`);
-
-  // 6. 稼働条件
-  paras.push(fill(pick(AVAILABILITY, rnd), vars, missing));
-
-  // 7. 質問（返信率が上がる）
-  if (opt.includeQuestion !== false) {
-    paras.push(QUESTIONS[category] || QUESTIONS.unknown);
+  // 5. 営業経験。未経験なら隠さず正直に書く（そのほうが通る）
+  if (p.salesExperienceLevel === 'none') {
+    add('experience', pick(NEWBIE_HONESTY, rnd));
+  } else if (p.salesExperienceLevel && !isBlank(p.salesExperience)) {
+    add('experience', fill(pick(EXPERIENCED, rnd), vars, missing));
   }
 
-  // 8. 締め
-  paras.push(pick(CLOSERS, rnd));
+  // 6. 熱量（応募文の主役）
+  add('motivation', `${pick(MOTIVATION, rnd)}\n${pick(PROOF_OF_HUNGER, rnd)}`);
 
-  const raw = paras.filter(Boolean).join('\n\n');
+  // 7. 稼働条件
+  add('availability', fill(pick(AVAILABILITY, rnd), vars, missing));
+
+  // 8. 質問（返信のきっかけ。案件の質を見極める逆質問も兼ねる）
+  if (opt.includeQuestion !== false) add('question', QUESTIONS[category] || QUESTIONS.unknown);
+
+  // 9. 締め
+  add('closer', pick(CLOSERS, rnd));
+
+  const raw = clampParagraphs(paras, opt.maxWidth).map((x) => x.text).join('\n\n');
   const { text, warnings } = deodorize(raw);
 
   if (missing.length) {
@@ -204,7 +213,7 @@ export function composeApplication(job, profile, opt = {}) {
   }
 
   return {
-    text: clampToWidth(text, opt.maxWidth),
+    text,
     subject: buildSubject(job, p, category),
     category,
     categoryLabel: CATEGORY_LABELS[category],
@@ -242,24 +251,23 @@ function buildSubject(job, p, category) {
   return `${CATEGORY_LABELS[category] || '営業代行'}のご応募（${name}）`;
 }
 
-/** 文字数上限がある媒体向けに、後ろの段落から落として収める */
-function clampToWidth(text, maxWidth) {
-  if (!maxWidth) return text;
-  let paras = text.split('\n\n');
-  // 落としてよい順（質問 → 実績詳細 → 進め方）。熱量と稼働条件と締めは残す。
-  const droppable = [6, 3, 2];
-  while (width(paras.join('\n\n')) > maxWidth && paras.length > 3) {
-    let dropped = false;
-    for (const i of droppable) {
-      if (paras[i] !== undefined) { paras.splice(i, 1); dropped = true; break; }
-    }
-    if (!dropped) paras.splice(paras.length - 2, 1);
+/**
+ * 文字数上限がある媒体向けに、落としてよい段落から削って収める。
+ * 書き出し・熱量・稼働条件・締めは何があっても残す（応募文の芯なので）。
+ */
+function clampParagraphs(paras, maxWidth) {
+  if (!maxWidth) return paras;
+  const droppable = ['question', 'capability', 'experience', 'achievements', 'intro'];
+  let out = [...paras];
+  const total = () => width(out.map((x) => x.text).join('\n\n'));
+  for (const key of droppable) {
+    if (total() <= maxWidth) break;
+    out = out.filter((x) => x.key !== key);
   }
-  return paras.join('\n\n');
+  return out;
 }
 
-/** 短文DM用（ココナラのDM・InstagramのDMなど） */
+/** 短文DM用（SNSのDMなど） */
 export function composeShort(job, profile, opt = {}) {
-  const full = composeApplication(job, profile, { ...opt, includeQuestion: false });
-  return { ...full, text: clampToWidth(full.text, opt.maxWidth || 300) };
+  return composeApplication(job, profile, { ...opt, includeQuestion: false, maxWidth: opt.maxWidth || 300 });
 }

@@ -1,39 +1,69 @@
 /**
- * 案件のスコアリングと危険案件フィルタ。
- * 「1件ずつ自分で調べる」をやめるための頭脳。上から順に応募すればいい状態にする。
+ * 案件の採点。判断基準の正本は tools/sales-apply/案件選定ルール.md（実践活動FAQ）。
+ *
+ * チェックリスト（この6つ＋媒体で判断する）
+ *   営業対象   BtoC ◯ / BtoB ×（原則）
+ *   商材の種類 無形 ◯ / 有形 ×
+ *   商材単価   30万〜120万 ◯ / 10万以下 ×
+ *   アポイント 譲渡型 ◯ / 自己獲得型 ×
+ *   営業スタイル オンライン完結 ◯ / 現場訪問必須 ×
+ *   対象顧客   一般成人 ◯ / 子ども・学生向け ×
+ *   媒体       クラウドワークスは使用禁止
+ *
+ * 募集文に書いていない項目は「不明」にして、面接で聞くことリストに回す。
+ * 「完璧な案件を見つけてから応募する」のではなく「まず動く」ためのバランスにしてある。
  */
 
-/** 応募してはいけない／地雷の匂いがする案件のパターン */
+/** 使ってはいけない媒体 */
+export const BANNED_SITES = {
+  crowdworks: 'クラウドワークスは使用禁止（実践活動ルール）。他の媒体で探してください。',
+};
+
+/** 応募してはいけない／地雷の匂いがする案件 */
 export const RED_FLAGS = [
   [/初期費用|登録料|研修費|教材費|参加費|保証金/, '費用の負担を求めている（詐欺・情報商材の定番）'],
-  [/完全出来高.*(単価|報酬)?\s*(なし|0円)|報酬は成果のみ|固定報酬なし/, '完全出来高で固定なし（時間だけ取られやすい）'],
   [/情報商材|副業スクール|投資案件|バイナリー|ネットワークビジネス|MLM|アムウェイ|権利収入/, '商材が危険'],
   [/(LINE|ライン|Telegram|テレグラム)(で|に)?(登録|追加).{0,12}(詳細|説明|お伝え)/, '外部へ誘導してから詳細を出す型（規約違反・詐欺が多い）'],
   [/身分証.{0,10}(すぐ|先に|事前に)/, '着手前に身分証を求めている'],
   [/口座|銀行.{0,6}(貸し|レンタル|名義)/, '口座の貸し借り（犯罪）'],
   [/仮想通貨|暗号資産.{0,10}(勧誘|販売|紹介)/, '暗号資産の勧誘'],
+  [/スクールに(入|加入)|一緒に活動しませんか|コミュニティに(参加|加入)/, '別スクール・組織への勧誘の可能性 → 運営に相談してから判断'],
 ];
 
-/** 相性がいいキーワード（琴音さんの持ち味が効く領域） */
-export const PLUS_KEYWORDS = [
-  [/中古車|自動車|カーディーラー|車販売|整備工場/, 18, '自動車業界＝本業ドンピシャ'],
-  [/店舗|実店舗|美容室|飲食|工務店|整体|サロン|地域/, 12, '店舗向け＝本業と同じ相手'],
-  [/LINE|公式アカウント|Lステップ|MEO|SNS|Instagram|TikTok/, 12, 'LINE・SNS＝実装経験あり'],
-  [/AI|自動化|DX|業務効率|ノーコード|SaaS|ツール導入/, 10, 'AI・自動化＝説明できる領域'],
-  [/未経験(可|歓迎|OK)|初心者(可|歓迎|OK)|研修|マニュアル|同行/, 10, '未経験可・教育あり＝入りやすい'],
-  [/長期|継続|安定|コアメンバー|正社員登用/, 8, '長期前提＝スキルが積み上がる'],
-  [/在宅|リモート|フルリモート|オンライン完結/, 8, '在宅可'],
-  [/フィードバック|振り返り|1on1|ロープレ/, 8, '営業スキルが伸びる環境'],
-];
+/* ---------- 判定用の言葉 ---------- */
+const RE = {
+  btoc: /BtoC|B2C|toC向け|個人(の)?(お客様|お客さま|向け|宅|顧客)|一般個人|コンシューマ|受講(生|希望|検討)|会員(募集|様)|エンドユーザー/i,
+  btob: /BtoB|B2B|toB向け|法人(営業|向け|様|開拓|顧客)|企業(向け|様|担当者|開拓)|中小企業|店舗(オーナー|経営者)(様)?(向け|へ)|代表者様/i,
 
-/** 相性が悪いキーワード */
-export const MINUS_KEYWORDS = [
-  [/常駐|出社必須|東京(勤務|在住)|首都圏(のみ|限定)|関東(のみ|限定)/, -18, '出社・エリア条件が合わない'],
-  [/(週|1日).{0,4}(40|8)時間以上|フルタイム必須/, -12, '稼働量が重い'],
-  [/保険|証券|不動産投資|太陽光/, -10, '重規制・重商材（初回には重い）'],
-  [/英語|中国語|バイリンガル/, -10, '語学要件'],
-  [/法人格必須|インボイス登録必須/, -6, '条件に要確認事項あり'],
-];
+  intangible: /無形商材|スクール|講座|コーチング|コンサル(ティング)?|ジム|パーソナルトレーニング|フィットネス|英会話|語学|結婚相談所|婚活|サブスク|SaaS|オンラインサロン|セミナー|教育サービス|転職支援|キャリア支援|美容(医療|クリニック)|エステ|脱毛|会員制サービス|プログラミングスクール|動画編集スクール/,
+  tangible: /有形商材|物販|商品販売|アパレル|洋服|食品|飲食物|家電|中古車|自動車|新車|時計|宝石|貴金属|不動産|マンション|戸建|太陽光|住宅|リフォーム|家具|通信機器|ウォーターサーバー/,
+
+  handover: /アポイント(は)?(こちら|弊社|当社|会社)(側)?(で|が)?(用意|供給|提供|支給|獲得)|アポ(イント)?(の)?(支給|供給|提供|譲渡|固定|お渡し)|商談(のみ|に専念|に集中|だけ)|反響営業|インバウンド|問い合わせ(のあった|いただいた|ベース)|広告(運用)?(から|経由)(の)?(問い合わせ|反響|リード)|集客は(弊社|当社|会社|こちら)/,
+  selfGet: /アポ(イント)?(は)?(ご)?自(身|分)(で|が)|自分でアポ|新規開拓|飛び込み|交流会|人脈(を活かし|から)|セルフアポ|集客から(お願い|担当)|リード獲得から/,
+
+  online: /オンライン(完結|商談|面談|営業)|zoom|ズーム|google\s*meet|リモート|在宅|フルリモート|web(面談|商談)/i,
+  onsite: /訪問(営業|必須)|対面(での)?(商談|面談|営業)|来社|常駐|出社(必須)?|現地(に|へ)|店舗(に|へ)(伺|訪問)|フィールドセールス|ラウンダー/,
+
+  minors: /学習塾|進学塾|家庭教師|受験|中学生|高校生|小学生|児童|生徒(募集|様)|保護者|こども|子ども|子供|キッズ|学生向け/,
+
+  teleapoOnly: /テレアポ(のみ|専門|業務のみ)|架電(のみ|業務のみ)|コール(のみ|専門|センター)/,
+  hasMeeting: /商談|クロージング|面談|相談会|カウンセリング/,
+
+  adLead: /広告(運用|費)|リスティング|Meta広告|SNS運用|インスタ(グラム)?運用|TikTok運用|YouTube(運用|広告)/,
+  lineLead: /LINE(公式)?(リスト|配信|@)|ステップ配信|メルマガ配信/,
+
+  newbieOk: /未経験(可|歓迎|OK|でも)|初心者(可|歓迎|OK)|研修(あり|制度)|マニュアル(あり|完備)|ロープレ|同行|フィードバック|1on1/i,
+  longTerm: /長期|継続|安定|コアメンバー|正社員登用|3ヶ月以上|半年以上/,
+};
+
+/** 「30万〜120万」「単価50万円」などから商材単価を拾う（円） */
+export function parseProductPrice(text) {
+  const s = String(text || '').replace(/[,，]/g, '');
+  const near = s.match(/(?:商材|商品|サービス|受注|契約|客)?単価[^\n]{0,16}?(\d+(?:\.\d+)?)\s*万/)
+    || s.match(/(\d+(?:\.\d+)?)\s*万円?(?:の|前後の)?(?:商材|サービス|講座|コース|プラン)/);
+  if (near) return Math.round(parseFloat(near[1]) * 10000);
+  return null;
+}
 
 /** 報酬テキストから最低額をざっくり数値化（円） */
 export function parseReward(text) {
@@ -46,61 +76,159 @@ export function parseReward(text) {
   return null;
 }
 
+/* ---------- チェックリスト ---------- */
+
+/** 1項目の判定を作る小道具 */
+const item = (key, label, status, detail, points, ask) => ({ key, label, status, detail, points, ask });
+
+/**
+ * 案件をチェックリストで評価する。
+ * status: 'ok'（推奨条件に合う）/ 'ng'（避けるべき）/ 'warn'（注意）/ 'unknown'（募集文に書いていない）
+ */
+export function evaluateJob(job, profile = {}) {
+  const text = `${job.title || ''}\n${job.description || ''}\n${job.budget || ''}`;
+  const checklist = [];
+  const canDaytime = profile.canWorkDaytime === true;   // 日中に動けるならBtoBも可
+
+  // 1. 営業対象
+  if (RE.btoc.test(text) && !RE.btob.test(text)) {
+    checklist.push(item('target', '営業対象', 'ok', 'BtoC（個人向け）', 20));
+  } else if (RE.btob.test(text) && !RE.btoc.test(text)) {
+    checklist.push(canDaytime
+      ? item('target', '営業対象', 'warn', 'BtoB（日中に動けるので可）', -5)
+      : item('target', '営業対象', 'ng', 'BtoB（日中は本業があるため原則NG）', -35));
+  } else if (RE.btoc.test(text) && RE.btob.test(text)) {
+    checklist.push(item('target', '営業対象', 'warn', 'BtoC・BtoBの両方が出てくる', 0, 'BtoCの商談だけを担当できますか？'));
+  } else {
+    checklist.push(item('target', '営業対象', 'unknown', '募集文に記載なし', -5, 'お客様は個人の方ですか、法人ですか？'));
+  }
+
+  // 2. 商材の種類
+  if (RE.intangible.test(text) && !RE.tangible.test(text)) {
+    checklist.push(item('product', '商材の種類', 'ok', '無形商材（サービス・情報）', 18));
+  } else if (RE.tangible.test(text)) {
+    checklist.push(item('product', '商材の種類', 'ng', '有形商材（単価が安い／現場に行く必要が出る）', -35));
+  } else {
+    checklist.push(item('product', '商材の種類', 'unknown', '募集文に記載なし', -5, '商材は形のあるモノですか、サービスですか？'));
+  }
+
+  // 3. 商材単価（推奨 30万〜120万）
+  const price = parseProductPrice(text);
+  if (price == null) {
+    checklist.push(item('price', '商材単価', 'unknown', '募集文に記載なし', -3, '商材の単価はいくらくらいですか？'));
+  } else if (price >= 300000 && price <= 1200000) {
+    checklist.push(item('price', '商材単価', 'ok', `${price / 10000}万円（推奨レンジ）`, 18));
+  } else if (price > 1200000) {
+    checklist.push(item('price', '商材単価', 'warn', `${price / 10000}万円（高単価・難易度は上がる）`, 4));
+  } else if (price >= 100000) {
+    checklist.push(item('price', '商材単価', 'warn', `${price / 10000}万円（推奨レンジ未満だが経験にはなる）`, 2));
+  } else {
+    checklist.push(item('price', '商材単価', 'ng', `${price / 10000}万円（10万円以下・報酬が数千円になりがち）`, -18));
+  }
+
+  // 4. アポイント（最重要）
+  if (RE.handover.test(text) && !RE.selfGet.test(text)) {
+    checklist.push(item('appointment', 'アポイント', 'ok', '譲渡型（会社が集客してくれる）', 22));
+  } else if (RE.selfGet.test(text) && !RE.handover.test(text)) {
+    checklist.push(item('appointment', 'アポイント', 'ng', '自己獲得型（アポ取りから自分・今の段階では難易度が高い）', -30));
+  } else if (RE.handover.test(text) && RE.selfGet.test(text)) {
+    checklist.push(item('appointment', 'アポイント', 'warn', '譲渡＋自己獲得の両方（譲渡が主ならむしろ最上級）', 8,
+      'アポイントはどのような方法で獲得されていますか？'));
+  } else {
+    checklist.push(item('appointment', 'アポイント', 'unknown', '募集文に記載なし（面接で必ず聞く）', -8,
+      'アポイントはどのような方法で獲得されていますか？'));
+  }
+
+  // 5. 営業スタイル
+  if (RE.onsite.test(text)) {
+    checklist.push(item('style', '営業スタイル', 'ng', '現場訪問・出社が必要', -30));
+  } else if (RE.online.test(text)) {
+    checklist.push(item('style', '営業スタイル', 'ok', 'オンライン完結（Zoom等）', 12));
+  } else {
+    checklist.push(item('style', '営業スタイル', 'unknown', '募集文に記載なし', -3, '商談はオンラインで完結しますか？'));
+  }
+
+  // 6. 対象顧客
+  if (RE.minors.test(text)) {
+    checklist.push(item('customer', '対象顧客', 'ng', '子ども・学生向け（狙って探すのはNG）', -25));
+  } else {
+    checklist.push(item('customer', '対象顧客', 'ok', '一般成人', 0));
+  }
+
+  return checklist;
+}
+
 /**
  * 案件を採点する。
- * @returns {{score:number, reasons:string[], redFlags:string[], verdict:'apply'|'maybe'|'skip'}}
+ * @returns {{score, verdict, redFlags, banned, checklist, reasons, askInInterview}}
  */
 export function scoreJob(job, profile = {}) {
   const text = `${job.title || ''}\n${job.description || ''}\n${job.budget || ''}`;
   const reasons = [];
   const redFlags = [];
-  let score = 50;
 
+  // 禁止媒体は問答無用
+  const banned = BANNED_SITES[job.site] || null;   // redFlags には入れない（UIで別枠に出す）
   for (const [re, why] of RED_FLAGS) if (re.test(text)) redFlags.push(why);
 
-  for (const [re, pts, why] of PLUS_KEYWORDS) {
-    if (re.test(text)) { score += pts; reasons.push(`+${pts} ${why}`); }
-  }
-  for (const [re, pts, why] of MINUS_KEYWORDS) {
-    if (re.test(text)) { score += pts; reasons.push(`${pts} ${why}`); }
+  const checklist = evaluateJob(job, profile);
+  let score = 50;
+  for (const c of checklist) {
+    score += c.points;
+    if (c.points) reasons.push(`${c.points > 0 ? '+' : ''}${c.points} ${c.label}: ${c.detail}`);
   }
 
-  // 報酬
-  const minReward = parseReward(job.budget) ?? parseReward(text);
-  const floor = profile.minReward ?? 30000;
-  if (minReward != null) {
-    if (minReward >= floor * 3) { score += 12; reasons.push('+12 報酬が十分'); }
-    else if (minReward >= floor) { score += 6; reasons.push('+6 報酬は許容範囲'); }
-    else { score -= 15; reasons.push(`-15 報酬が希望下限(${floor}円)を下回る`); }
-  } else {
-    reasons.push('±0 報酬の記載を読み取れず（要確認）');
+  // 集客方法の質（アポの安定度に直結する）
+  if (RE.adLead.test(text)) { score += 10; reasons.push('+10 広告・SNS運用で集客（アポ供給が安定しやすい）'); }
+  else if (RE.lineLead.test(text)) { score += 6; reasons.push('+6 LINEリスト配信で集客'); }
+
+  // テレアポのみは狙って探さない
+  if (RE.teleapoOnly.test(text) && !RE.hasMeeting.test(text)) {
+    score -= 12; reasons.push('-12 テレアポのみ（狙って探すのはNG。含まれるだけなら可）');
   }
+
+  // 入りやすさ・続けやすさ
+  if (RE.newbieOk.test(text)) { score += 8; reasons.push('+8 未経験可・研修やフィードバックあり'); }
+  if (RE.longTerm.test(text)) { score += 6; reasons.push('+6 長期前提'); }
 
   // 競合の少なさ
   if (typeof job.applicants === 'number') {
-    if (job.applicants <= 3) { score += 12; reasons.push('+12 応募者が少ない（今なら目立つ）'); }
-    else if (job.applicants >= 15) { score -= 10; reasons.push('-10 応募者が多い（埋もれる）'); }
+    if (job.applicants <= 3) { score += 10; reasons.push('+10 応募者が少ない（今なら目立つ）'); }
+    else if (job.applicants >= 15) { score -= 8; reasons.push('-8 応募者が多い（埋もれる）'); }
   }
 
-  // 募集文の熱量（コピペ募集は返信も来ない）
+  // 募集文の熱量
   const len = String(job.description || '').length;
   if (len >= 400) { score += 6; reasons.push('+6 募集文が丁寧（本気の発注者）'); }
-  else if (len > 0 && len < 120) { score -= 8; reasons.push('-8 募集文が薄い（返信率が低い傾向）'); }
+  else if (len > 0 && len < 120) { score -= 6; reasons.push('-6 募集文が薄い'); }
 
-  // 本人確認・実績のある発注者
-  if (job.clientVerified) { score += 8; reasons.push('+8 本人確認済みの発注者'); }
+  if (job.clientVerified) { score += 6; reasons.push('+6 本人確認済みの発注者'); }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
-  const verdict = redFlags.length ? 'skip' : score >= 65 ? 'apply' : score >= 45 ? 'maybe' : 'skip';
-  return { score, reasons, redFlags, verdict };
+
+  const hardNg = checklist.filter((c) => c.status === 'ng');
+  const verdict = banned ? 'banned'
+    : redFlags.length ? 'skip'
+      : hardNg.length >= 2 ? 'skip'
+        : score >= 70 ? 'apply'
+          : score >= 50 ? 'maybe' : 'skip';
+
+  // 募集文でわからなかったことは面接で聞く
+  const askInInterview = [
+    ...checklist.filter((c) => c.ask).map((c) => c.ask),
+    'アポイントはどのような方法で獲得されていますか？',
+  ].filter((v, i, a) => a.indexOf(v) === i);
+
+  return { score, verdict, redFlags, banned, checklist, reasons, askInInterview, ngItems: hardNg.map((c) => `${c.label}: ${c.detail}`) };
 }
 
-/** 一覧をスコア順に並べ替え、地雷を後ろに落とす */
+/** 一覧をおすすめ順に並べ替える。禁止・地雷は後ろに落とす */
 export function rankJobs(jobs, profile) {
   return jobs
     .map((j) => ({ ...j, ...scoreJob(j, profile) }))
     .sort((a, b) => {
-      if (a.redFlags.length !== b.redFlags.length) return a.redFlags.length - b.redFlags.length;
+      const bad = (j) => (j.banned ? 2 : j.redFlags.length ? 1 : 0);
+      if (bad(a) !== bad(b)) return bad(a) - bad(b);
       return b.score - a.score;
     });
 }

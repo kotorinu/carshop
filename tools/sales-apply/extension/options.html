@@ -25,7 +25,8 @@
 この情報はこのブラウザの中にだけ保存されます（外部に送信されません）。</p>
 
 <div class="warn">
-  <b>先に埋めてほしいところ</b>：稼働時間・連絡手段・返信の速さ・開始日。ここが空だと応募文に【要記入】が残ります。
+  <b>先に埋めてほしいところ</b>：稼働時間・連絡手段・返信の速さ・開始日。ここが空だと応募文に【要記入】が残ります。<br>
+  案件の選び方（BtoC・無形商材・アポイント譲渡型・オンライン完結）は <code>案件選定ルール.md</code> が正本です。
 </div>
 
 <h2>1. 基本</h2>
@@ -48,9 +49,19 @@
   <div><label>連絡手段<span class="hint">（例: チャットワーク・LINE）</span><input id="contact"></label></div>
   <div><label>返信の速さ<span class="hint">（例: 平日日中は1時間以内）</span><input id="responseTime"></label></div>
   <div><label>開始できる日<span class="hint">（例: 即日）</span><input id="startDate"></label></div>
-  <div><label>報酬の下限（円）<span class="hint">これを下回る案件は減点される</span><input id="minReward" type="number"></label></div>
+  <div><label>狙う商材単価の下限（円）<span class="hint">推奨30万</span><input id="priceMin" type="number"></label></div>
+  <div><label>狙う商材単価の上限（円）<span class="hint">推奨120万</span><input id="priceMax" type="number"></label></div>
   <div><label>フォームに入れる希望金額<span class="hint">（空でOK）</span><input id="proposedAmount"></label></div>
+  <div><label>営業の実務経験<span class="hint">未経験なら正直に書いたほうが通ります</span>
+    <select id="salesExperienceLevel">
+      <option value="none">未経験</option>
+      <option value="some">多少ある</option>
+      <option value="pro">本職として経験あり</option>
+    </select></label></div>
 </div>
+<label>営業経験の中身 <span class="hint">（「多少ある」「経験あり」を選んだときだけ使われます）</span><textarea id="salesExperience"></textarea></label>
+<label><input type="checkbox" id="canWorkDaytime" style="width:auto"> 日中も稼働できる（本業を退職済みなど）
+  <span class="hint">オフのままだとBtoB案件は原則NGとして減点されます（案件選定ルール）</span></label>
 
 <h2>3. 実績（応募文の箇条書きになる）</h2>
 <label>1行に1つ。案件に合うものが自動で選ばれます。

@@ -41,10 +41,11 @@
   panel.set({
     site: ad.name,
     mode: { list: '案件一覧のページ', detail: '案件の詳細ページ', form: '応募フォーム', other: 'その他のページ' }[mode],
-    message: profile ? '' : 'まずプロフィールを登録してください（拡張機能アイコン → 設定）。',
+    banned: ad.banned || '',
+    message: ad.banned ? '' : profile ? '' : 'まずプロフィールを登録してください（拡張機能アイコン → 設定）。',
   });
 
-  if (mode === 'detail' || mode === 'form') {
+  if (!ad.banned && (mode === 'detail' || mode === 'form')) {
     currentJob = await resolveJob();
     if (currentJob) {
       const s = scoring.scoreJob(currentJob, profile || {});
@@ -54,6 +55,8 @@
         draft: draft || '',
         message: verdictMessage(currentJob),
         warnings: currentJob.redFlags,
+        checklist: currentJob.checklist || [],
+        askInInterview: currentJob.askInInterview || [],
       });
     }
   }
@@ -61,6 +64,10 @@
   /* ---------- ボタン定義 ---------- */
   function buttons(state) {
     const list = [];
+    // 使用禁止の媒体では、応募のための機能は一切出さない
+    if (ad.banned) {
+      return [{ label: '使える媒体で探しに行く', onClick: openSearches }];
+    }
     if (mode === 'list') {
       list.push({ label: '① 案件を集める', onClick: collect });
     }
@@ -94,10 +101,12 @@
     const ranked = scoring.rankJobs(jobs, profile || {});
     const res = await send({ type: 'saveJobs', jobs: ranked, site: ad.id });
     const applyCount = ranked.filter((j) => j.verdict === 'apply').length;
+    const maybeCount = ranked.filter((j) => j.verdict === 'maybe').length;
     panel.set({
       busy: false,
       jobs: ranked,
-      message: `${jobs.length}件を読み取りました（新規${res.added}件）。うち「応募推奨」は${applyCount}件です。上から順に開いてください。`,
+      message: `${jobs.length}件を読み取りました（新規${res.added}件）。応募推奨${applyCount}件・要確認${maybeCount}件。`
+        + '複数の案件に同時に応募するのが前提です。上から順に開いてください。',
     });
   }
 
@@ -123,7 +132,9 @@
     panel.set({
       busy: false,
       draft: out.text,
-      warnings: [...(currentJob.redFlags || []), ...out.warnings],
+      warnings: [...(currentJob.redFlags || []), ...(currentJob.ngItems || []), ...out.warnings],
+      checklist: currentJob.checklist || [],
+      askInInterview: currentJob.askInInterview || [],
       message: `${out.categoryLabel} の型で書きました。声に出して読んで、引っかかる所だけ直してください。`,
     });
   }
@@ -210,9 +221,11 @@
   }
 
   function verdictMessage(job) {
+    if (job.banned) return '🚫 この媒体は使用禁止です。';
     if (job.redFlags?.length) return '⚠ 危険な条件が入っています。応募しないことをおすすめします。';
+    if (job.ngItems?.length) return `⚠ ${job.score}点。避けるべき条件: ${job.ngItems.join(' / ')}`;
     if (job.verdict === 'apply') return `おすすめ度 ${job.score}点。応募推奨です。`;
-    if (job.verdict === 'maybe') return `おすすめ度 ${job.score}点。条件を確認してから判断してください。`;
+    if (job.verdict === 'maybe') return `おすすめ度 ${job.score}点。不明な項目は面接で聞いてください。まず動くのが優先です。`;
     return `おすすめ度 ${job.score}点。優先度は低めです。`;
   }
 

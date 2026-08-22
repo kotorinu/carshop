@@ -1,20 +1,26 @@
 const $ = (id) => document.getElementById(id);
-const FLAT = ['displayName', 'fullName', 'fullNameKana', 'location', 'email', 'phone', 'postalCode', 'address', 'businessSummary', 'selfIntroCore', 'minReward', 'proposedAmount'];
+const FLAT = ['displayName', 'fullName', 'fullNameKana', 'location', 'email', 'phone', 'postalCode', 'address', 'businessSummary', 'selfIntroCore', 'proposedAmount', 'salesExperience', 'salesExperienceLevel'];
 const AVAIL = ['hours', 'contact', 'responseTime', 'startDate'];
 
 function toForm(p) {
   for (const k of FLAT) $(k).value = p[k] ?? '';
   for (const k of AVAIL) $(k).value = (p.availability || {})[k] ?? '';
+  $('priceMin').value = (p.targetProductPrice || {}).min ?? 300000;
+  $('priceMax').value = (p.targetProductPrice || {}).max ?? 1200000;
+  $('canWorkDaytime').checked = p.canWorkDaytime === true;
+  $('salesExperienceLevel').value = p.salesExperienceLevel || 'none';
   const ach = (p.achievements || []).map((a) => (typeof a === 'string' ? a : a.text));
   $('achievements').value = ach.join('\n');
 }
 
 function fromForm(base = {}) {
   const p = { ...base };
-  for (const k of FLAT) {
-    const v = $(k).value.trim();
-    p[k] = k === 'minReward' ? (v ? Number(v) : 30000) : v;
-  }
+  for (const k of FLAT) p[k] = $(k).value.trim();
+  p.targetProductPrice = {
+    min: Number($('priceMin').value) || 300000,
+    max: Number($('priceMax').value) || 1200000,
+  };
+  p.canWorkDaytime = $('canWorkDaytime').checked;
   p.availability = { ...(base.availability || {}) };
   for (const k of AVAIL) p.availability[k] = $(k).value.trim();
 
@@ -38,7 +44,9 @@ chrome.storage.local.get({ profile: null }, async ({ profile }) => {
 /** 拡張機能に同梱したサンプル（リポジトリの profile.example.json 相当） */
 async function loadDefault() {
   return {
-    displayName: '', businessSummary: '', selfIntroCore: '', location: '', minReward: 30000,
+    displayName: '', businessSummary: '', selfIntroCore: '', location: '',
+    salesExperienceLevel: 'none', canWorkDaytime: false,
+    targetProductPrice: { min: 300000, max: 1200000 },
     availability: { hours: '', contact: '', responseTime: '', startDate: '' },
     achievements: [],
   };
@@ -82,9 +90,9 @@ $('preview').onclick = async () => {
   const job = {
     id: 'sample-1',
     site: 'sample',
-    title: '【長期】店舗向けサービスのインサイドセールス（在宅・未経験歓迎）',
-    description: '一緒に立ち上げから携わってくれる方を探しています。お客様は地域の小さなお店が中心です。マニュアルとロープレの研修があるので未経験の方も歓迎します。長く続けてくださる方を優先します。',
-    budget: '時給1,500円〜＋成果報酬',
+    title: '【BtoC/オンライン完結】パーソナルジムの入会カウンセリング（アポイント支給）',
+    description: '広告運用で集めた無料カウンセリングのお申し込みに対して、Zoomで商談していただきます。アポイントは弊社で用意しますので商談に集中していただけます。商材単価は50万円のコースです。未経験可、ロープレとフィードバックの時間を毎週取ります。長期で一緒にやってくださる方を探しています。',
+    budget: '1商談5,000円＋成果報酬',
   };
   const out = composeApplication(job, fromForm(current));
   $('previewOut').textContent = out.text + (out.warnings.length ? `\n\n─── 直したほうがいい点 ───\n・${out.warnings.join('\n・')}` : '');

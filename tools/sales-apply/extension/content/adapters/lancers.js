@@ -1,11 +1,18 @@
-/** ランサーズ */
+/**
+ * ランサーズ。
+ * 検索キーワードは 案件選定ルール.md（無形・BtoC・オンライン完結）に合わせている。
+ * URLが変わったらここだけ直せばいい。
+ */
+const search = (kw) => `https://www.lancers.jp/work/search?keyword=${encodeURIComponent(kw)}&open=1&show_description=1`;
+
 export default {
   id: 'lancers',
   name: 'ランサーズ',
   searchUrls: [
-    'https://www.lancers.jp/work/search/business/sales?keyword=営業代行&open=1&show_description=1',
-    'https://www.lancers.jp/work/search?keyword=テレアポ&open=1',
-    'https://www.lancers.jp/work/search?keyword=インサイドセールス&open=1',
+    search('無形商材 営業代行'),
+    search('オンライン完結 営業代行'),
+    search('BtoC 営業代行'),
+    search('営業代行 未経験可'),
   ],
   matches: (loc) => /(^|\.)lancers\.jp$/.test(loc.hostname),
   detailPattern: /lancers\.jp\/work\/detail\/(\d+)/,
@@ -14,7 +21,7 @@ export default {
   isFormPage: (loc) => /propose|proposal|entry/.test(loc.pathname + loc.search),
   hints: {
     title: ['h1.heading-title', '.c-heading__title', 'h1'],
-    description: ['.work-detail__description', '#work-detail-description', '[class*="worDetail"]', '[class*="description"]'],
+    description: ['.work-detail__description', '#work-detail-description', '[class*="description"]'],
     budget: ['.work-detail__price', '[class*="price"]'],
     message: ['textarea[name*="proposal"]', 'textarea[name*="message"]', 'textarea[name="comment"]'],
     submit: ['button[type="submit"]', 'input[type="submit"]'],

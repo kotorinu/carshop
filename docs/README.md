@@ -138,8 +138,12 @@ carshop/
 
 | やりたいこと | 場所 |
 |---|---|
+| **案件を選ぶ基準（正本・実践活動FAQ）** | [`tools/sales-apply/案件選定ルール.md`](../tools/sales-apply/案件選定ルール.md) |
 | 使い方（Chrome拡張の入れ方から） | [`tools/sales-apply/README.md`](../tools/sales-apply/README.md) |
 | 自分の情報（応募文の材料） | `tools/sales-apply/profile/profile.json` |
 | まだ埋まっていない項目を確認 | `npm run apply:doctor` |
 | 文体のルール（AI感を消す決まりごと） | [`tools/sales-apply/profile/voice.md`](../tools/sales-apply/profile/voice.md) |
+| 面接のカンペを作る | `node tools/sales-apply/cli.mjs interview` |
 | Claudeに答えてほしい質問リスト | [`tools/sales-apply/質問リスト.md`](../tools/sales-apply/質問リスト.md) |
+
+> 🚫 **クラウドワークスは使用禁止**（実践活動ルール）。媒体は複業クラウド・ランサーズ・Indeed を使う。

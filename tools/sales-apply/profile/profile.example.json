@@ -1,60 +1,106 @@
 {
-  "_readme": "応募文の材料。ここを直せば全案件の文面が変わる。個人の連絡先だけは private.json（git管理外）に置く。",
-
+  "_readme": "応募文の材料。ここを直せば全案件の文面が変わる。個人の連絡先だけは private.json（git管理外）に置く。判断基準の正本は 案件選定ルール.md。",
   "displayName": "緒方 琴音",
   "businessSummary": "大阪・寝屋川の中古車販売店の集客とDX（LINE・SNS・自動化）",
   "selfIntroCore": "自分の店のLINE集客システムを一から作って、いまも毎日回しています。作って終わりではなく、数字を見て直すところまで自分でやっています。",
-
   "location": "大阪府",
-  "workStyle": "在宅（オンライン完結の案件が中心。関西圏なら訪問も可）",
-
-  "minReward": 30000,
-  "rewardNote": "内容次第。まず実績を作りたいのでテスト発注歓迎",
-
+  "workStyle": "オンライン完結（Zoom等）。日中は本業があるため夜間・土日で稼働",
   "availability": {
-    "hours": "?（例: 平日9〜18時／平日夜19〜23時＋土日終日 など）",
-    "contact": "?（例: チャットワーク・Slack・LINE・メール）",
-    "responseTime": "?（例: 平日日中は1時間以内、夜間も当日中）",
-    "startDate": "?（例: 即日／来週月曜から）"
+    "hours": "平日19〜23時＋土日終日",
+    "contact": "SlackかLINE",
+    "responseTime": "平日日中は3時間以内、夜と土日は1時間以内",
+    "startDate": "即日"
   },
-
   "achievements": [
     {
       "text": "中古車店のLINE公式アカウントをAI接客botにする仕組みを自分で構築。夜間の問い合わせにも即返信、在庫案内・査定受付・来店予約まで自動で回しています",
-      "tags": ["inside", "cs", "unknown"]
+      "tags": [
+        "closing",
+        "inside",
+        "cs",
+        "unknown"
+      ]
     },
     {
       "text": "在庫データと連動した車両カルーセルを実装。売れた車が自動で消えるので、案内ミスがゼロになりました",
-      "tags": ["cs", "list"]
+      "tags": [
+        "cs",
+        "list"
+      ]
     },
     {
       "text": "掲載写真からTikTok用の縦動画を自動生成する仕組みを作り、広告費ゼロで集客の入口を運用しています",
-      "tags": ["form", "partner", "unknown"]
+      "tags": [
+        "form",
+        "partner",
+        "unknown"
+      ]
     },
     {
       "text": "ジモティ・メルカリ・X向けの出品文を毎回自分で書いて改善してきたので、相手に合わせて刺さる文章を書き分けるのは得意です",
-      "tags": ["form", "list"]
+      "tags": [
+        "closing",
+        "form",
+        "list"
+      ]
     },
     {
       "text": "毎朝の数字チェック（新入庫・売約・返信漏れ）を仕組み化。数字を見て次の一手を決める習慣がついています",
-      "tags": ["inside", "cs"]
+      "tags": [
+        "inside",
+        "cs"
+      ]
     },
     {
       "text": "自社サービス（店舗向けDXパック 初期30万円／月額3万円）の商品設計・価格設計・見積書作成まで自分でやっています。売る側の立場で値段の話ができます",
-      "tags": ["inside", "partner", "field"]
+      "tags": [
+        "closing",
+        "inside",
+        "partner",
+        "field"
+      ]
     }
   ],
-
-  "salesExperience": "?（テレアポ経験の有無／店頭接客の年数／法人商談の経験 などを1〜3行で）",
-  "ngIndustries": ["投資", "情報商材", "ネットワークビジネス"],
-  "wantIndustries": ["店舗向けサービス", "自動車関連", "SaaS", "AI・自動化", "地域ビジネス"],
-
-  "tools": ["Claude", "ChatGPT", "Googleスプレッドシート", "Canva", "LINE公式アカウント", "?（Zoom・Chatwork・Slack・Notion など使えるもの）"],
-
+  "salesExperience": "?（営業経験があるなら1〜3行で。店頭接客・法人商談・電話対応など何でも。あれば salesExperienceLevel を some か pro に変える）",
+  "ngIndustries": [
+    "投資",
+    "情報商材",
+    "ネットワークビジネス",
+    "有形商材（車・時計・不動産・家電・アパレル・食品）",
+    "子ども・学生向けサービス（学習塾など）"
+  ],
+  "wantIndustries": [
+    "ビジネススクール",
+    "フィットネスジム",
+    "英会話・語学スクール",
+    "結婚相談所",
+    "コーチング・コンサル",
+    "オンライン教育",
+    "会員制サービス"
+  ],
+  "tools": [
+    "Claude",
+    "ChatGPT",
+    "Googleスプレッドシート",
+    "Canva",
+    "LINE公式アカウント",
+    "Slack",
+    "?（Zoom・Notion など他に使えるもの）"
+  ],
   "accounts": {
+    "anotherworks": "?（複業クラウド。アカウント有無・登録済みか）",
     "lancers": "?（アカウント有無・本人確認済みか）",
-    "crowdworks": "?",
-    "coconala": "?",
+    "indeed": "?",
+    "crowdworks": "使用禁止（実践活動ルール）",
     "other": "?"
-  }
+  },
+  "canWorkDaytime": false,
+  "_canWorkDaytimeNote": "日中は本業があるためBtoB案件は原則NG（案件選定ルール.md）。退職して日中に動けるようになったら true にする。",
+  "targetProductPrice": {
+    "min": 300000,
+    "max": 1200000
+  },
+  "_targetProductPriceNote": "狙う商材単価（円）。高単価から狙う方針。10万円以下は報酬が数千円になりがちなので減点される。",
+  "salesExperienceLevel": "none",
+  "_salesExperienceLevelNote": "'none'（未経験）/'some'（多少ある）/'pro'（本職経験あり）。noneのときは応募文で正直に未経験と書いたうえで埋め合わせを示す。"
 }

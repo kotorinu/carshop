@@ -16,6 +16,9 @@
  *
  *   node tools/sales-apply/cli.mjs check drafts/xxx.md
  *     → 書いた文章のAI臭を検査
+ *
+ *   node tools/sales-apply/cli.mjs interview
+ *     → 面接で答える内容（自己紹介・動機・稼働時間・通信環境・逆質問）を作る
  */
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import path from 'node:path';
@@ -121,6 +124,9 @@ function writeDraft(job, out) {
     `- 報酬: ${job.budget || '-'}`,
     `- 型: ${out.categoryLabel}`,
     `- 件名: ${out.subject}`,
+    `- 点数: ${job.score}（${job.verdict}）`,
+    `- チェック: ${(job.checklist || []).map((c) => `${c.label}=${c.detail}`).join(' / ')}`,
+    (job.askInInterview || []).length ? `\n**面接で必ず聞くこと**\n${job.askInInterview.map((q) => `- ${q}`).join('\n')}` : '',
     out.warnings.length ? `\n> ⚠ 直したほうがいい点\n${out.warnings.map((w) => `> - ${w}`).join('\n')}` : '',
     '',
     '---',
@@ -171,8 +177,12 @@ const commands = {
     const ranked = rankJobs(jobs, profile).slice(0, limit);
     console.log(`\n=== 応募文を作ります（${ranked.length}件）===\n`);
     for (const job of ranked) {
-      if (job.redFlags.length && !has('force')) {
-        console.log(`⏭  スキップ: ${job.title}\n     理由: ${job.redFlags.join(' / ')}（それでも作るなら --force）`);
+      if (job.banned) {
+        console.log(`🚫 スキップ: ${job.title}\n     ${job.banned}`);
+        continue;
+      }
+      if ((job.redFlags.length || job.ngItems.length) && !has('force')) {
+        console.log(`⏭  スキップ: ${job.title}\n     理由: ${[...job.redFlags, ...job.ngItems].join(' / ')}（それでも作るなら --force）`);
         continue;
       }
       const out = composeApplication(job, profile);
@@ -189,14 +199,19 @@ const commands = {
     const file = flag('jobs');
     if (!file) die('--jobs <ファイル> を指定してください。');
     const ranked = rankJobs(loadJobs(file), profile);
-    console.log('\n点数  判定    報酬            タイトル');
-    console.log('─'.repeat(90));
+    const icon = { ok: '◯', ng: '×', warn: '△', unknown: '?' };
+    console.log('\n点数  判定   対象 商材 単価 アポ 形式 客層   タイトル');
+    console.log('─'.repeat(100));
     for (const j of ranked) {
-      const mark = j.redFlags.length ? '⚠危険' : { apply: '応募', maybe: '検討', skip: '見送' }[j.verdict];
-      console.log(`${String(j.score).padStart(4)}  ${mark}  ${(j.budget || '-').padEnd(14).slice(0, 14)}  ${j.title}`);
-      if (j.redFlags.length) console.log(`                            └ ${j.redFlags.join(' / ')}`);
+      const mark = j.banned ? '🚫禁止' : j.redFlags.length ? '⚠危険' : { apply: '応募', maybe: '検討', skip: '見送' }[j.verdict];
+      const cl = j.checklist.map((c) => ` ${icon[c.status] || '?'} `).join(' ');
+      console.log(`${String(j.score).padStart(4)}  ${mark} ${cl}  ${j.title}`);
+      if (j.banned) console.log(`        └ ${j.banned}`);
+      if (j.redFlags.length) console.log(`        └ ⚠ ${j.redFlags.join(' / ')}`);
+      if (j.ngItems.length) console.log(`        └ 避けるべき: ${j.ngItems.join(' / ')}`);
     }
-    console.log('');
+    console.log('\n列の意味: 対象=BtoC / 商材=無形 / 単価=30〜120万 / アポ=譲渡型 / 形式=オンライン完結 / 客層=一般成人');
+    console.log('「?」は募集文に書いていない項目。面接で聞けばいいので、応募を止める理由にはしない。\n');
   },
 
   check() {
@@ -213,6 +228,47 @@ const commands = {
       console.log(`\n置換したものを書き出しました: ${out}`);
     }
     console.log('');
+  },
+
+  interview() {
+    const p = loadProfile();
+    const a = p.availability || {};
+    const newbie = p.salesExperienceLevel === 'none';
+    const lines = [
+      '',
+      '=== 面接カンペ（声に出して1回読んでおく）===',
+      '',
+      '■ 自己紹介（30秒）',
+      `${p.displayName}と申します。普段は${p.businessSummary}をしています。`,
+      `${p.selfIntroCore}`,
+      newbie
+        ? '営業代行としての実務経験はまだありません。そのうえで、自分の商品は自分で売ってきました。'
+        : (p.salesExperience || ''),
+      '',
+      '■ 稼働可能な時間帯・週の稼働時間',
+      `${a.hours}で動けます。開始は${a.startDate}から可能です。`,
+      `連絡は${a.contact}が一番早く、${a.responseTime}で返します。`,
+      '',
+      '■ 営業代行に取り組もうと思った動機',
+      '報酬のためだけではありません。営業という、どこに行っても通用する力を自分の中に作りたいからです。',
+      '自分の事業でも集客から問い合わせ対応まで自分でやっていて、',
+      '断られることには慣れています。だから件数もフィードバックも、多いほどありがたいです。',
+      '',
+      '■ 通信環境',
+      'Zoomでの商談に問題ない回線と、静かに話せる環境があります。カメラ・マイクも常時使えます。',
+      '　※ 実際にZoomのテスト通話を一度しておくこと（ここで詰まると印象が落ちる）',
+      '',
+      '■ 逆質問（必ず聞く）',
+      '1. アポイントはどのような方法で獲得されていますか（広告・SNS運用・LINEリストなど）。',
+      '2. 商材の単価と、成約時の報酬の考え方を教えてください。',
+      '3. 初回はどのくらいの商談数からお願いできますか。',
+      '',
+      '　→ 1番は案件の質を見極める材料になる。複数案件を抱えたときの優先順位の判断にも使う。',
+      '',
+    ];
+    console.log(lines.join('\n'));
+    const blanks = findBlanks(p);
+    if (blanks.length) console.log(`⚠️  未記入が${blanks.length}件あります（cli.mjs doctor で確認）\n`);
   },
 
   help() {

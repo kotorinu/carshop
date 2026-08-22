@@ -35,7 +35,9 @@ function render() {
         ${esc(j.budget || '')}
         ${j.applicants != null ? `／応募${esc(j.applicants)}件` : ''}
       </div>
+      ${j.banned ? `<div class="meta">🚫 ${esc(j.banned)}</div>` : ''}
       ${j.redFlags && j.redFlags.length ? `<div class="meta">⚠ ${esc(j.redFlags[0])}</div>` : ''}
+      ${j.checklist && j.checklist.length ? `<div class="meta">${j.checklist.map((c) => `${esc(c.label)}${({ ok: '◯', ng: '×', warn: '△', unknown: '?' })[c.status] || '?'}`).join(' ')}</div>` : ''}
     </li>`).join('');
 }
 
@@ -62,8 +64,8 @@ $('#search').onclick = async () => {
 };
 
 $('#csv').onclick = () => {
-  const head = ['サイト', 'タイトル', '点数', '判定', '報酬', '応募数', '危険', 'URL'];
-  const lines = [head, ...rows().map((j) => [j.site || '', j.title || '', j.score, j.verdict, j.budget || '', j.applicants ?? '', (j.redFlags || []).join(' / '), j.url])]
+  const head = ['サイト', 'タイトル', '点数', '判定', '報酬', '応募数', '避けるべき条件', '危険', 'URL'];
+  const lines = [head, ...rows().map((j) => [j.site || '', j.title || '', j.score, j.verdict, j.budget || '', j.applicants ?? '', (j.ngItems || []).join(' / '), [j.banned, ...(j.redFlags || [])].filter(Boolean).join(' / '), j.url])]
     .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
   const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv' });
   const a = document.createElement('a');
