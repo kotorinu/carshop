@@ -5,7 +5,7 @@
   "fullNameKana": "オガタコトネ",
   "businessSummary": "大阪・寝屋川の中古車販売店の集客とDX（LINE・SNS・自動化）",
   "selfIntroCore": "自分の店のLINE集客システムを一から作って、いまも毎日回しています。作って終わりではなく、数字を見て直すところまで自分でやっています。",
-  "location": "大阪府",
+  "location": "東京都大田区",
   "workStyle": "オンライン完結（Zoom等）。日中は本業があるため夜間・土日で稼働",
   "availability": {
     "hours": "平日19〜23時＋土日終日",
@@ -103,5 +103,7 @@
   },
   "_targetProductPriceNote": "狙う商材単価（円）。高単価から狙う方針。10万円以下は報酬が数千円になりがちなので減点される。",
   "salesExperienceLevel": "none",
-  "_salesExperienceLevelNote": "'none'（未経験）/'some'（多少ある）/'pro'（本職経験あり）。noneのときは応募文で正直に未経験と書いたうえで埋め合わせを示す。"
+  "_salesExperienceLevelNote": "'none'（未経験）/'some'（多少ある）/'pro'（本職経験あり）。noneのときは応募文で正直に未経験と書いたうえで埋め合わせを示す。",
+  "zoomReady": true,
+  "_zoomReadyNote": "Zoomでの商談が問題なくできることを確認済み（面接で必ず聞かれる項目）。"
 }
