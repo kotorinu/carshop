@@ -5,8 +5,8 @@
   "fullNameKana": "オガタコトネ",
   "businessSummary": "大阪・寝屋川の中古車販売店の集客とDX（LINE・SNS・自動化）",
   "selfIntroCore": "自分の店のLINE集客システムを一から作って、いまも毎日回しています。作って終わりではなく、数字を見て直すところまで自分でやっています。",
-  "location": "東京都大田区",
-  "workStyle": "オンライン完結（Zoom等）。日中は本業があるため夜間・土日で稼働",
+  "location": "東京都大田区（在住）",
+  "workStyle": "東京在住・完全オンライン。日中は本業があるため夜間・土日で稼働",
   "availability": {
     "hours": "平日19〜23時＋土日終日",
     "contact": "SlackかLINE",
@@ -16,6 +16,15 @@
   "achievements": [
     {
       "text": "中古車店のLINE公式アカウントをAI接客botにする仕組みを自分で構築。夜間の問い合わせにも即返信、在庫案内・査定受付・来店予約まで自動で回しています",
+      "tags": [
+        "closing",
+        "inside",
+        "cs",
+        "unknown"
+      ]
+    },
+    {
+      "text": "大阪の店舗を東京からリモートで運営しています。現地に行かずにオンラインだけで人と仕事を動かすことには慣れています",
       "tags": [
         "closing",
         "inside",
@@ -105,5 +114,6 @@
   "salesExperienceLevel": "none",
   "_salesExperienceLevelNote": "'none'（未経験）/'some'（多少ある）/'pro'（本職経験あり）。noneのときは応募文で正直に未経験と書いたうえで埋め合わせを示す。",
   "zoomReady": true,
-  "_zoomReadyNote": "Zoomでの商談が問題なくできることを確認済み（面接で必ず聞かれる項目）。"
+  "_zoomReadyNote": "Zoomでの商談が問題なくできることを確認済み（面接で必ず聞かれる項目）。",
+  "_locationNote": "大阪の中古車販売店の事業を、東京からリモートで管理している。居住地は東京。"
 }
