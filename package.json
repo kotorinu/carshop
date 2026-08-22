@@ -23,7 +23,8 @@
     "apply:doctor": "node tools/sales-apply/cli.mjs doctor",
     "apply:test": "node tools/sales-apply/test/unit.mjs",
     "apply:test:e2e": "node tools/sales-apply/test/run.mjs",
-    "apply:build": "node tools/sales-apply/build.mjs"
+    "apply:build": "node tools/sales-apply/build.mjs",
+    "apply:realpage": "node tools/sales-apply/test/realpage.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.20.0",

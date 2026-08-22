@@ -15,6 +15,24 @@ npm i -D playwright jsdom
 CHROME_PATH=/path/to/chrome npm run apply:test:e2e   # Chromeの場所を指定する場合
 ```
 
+## 実サイトのHTMLでテストする（開発側は実サイトに接続できないため）
+
+ランサーズ・Indeed・複業クラウド・クラウドワークスは、開発環境の
+ネットワークポリシーで遮断されている（CONNECTに403）。
+そこで、ブラウザで保存したページに対して本番と同じ処理を回す。
+
+```bash
+# ブラウザで Ctrl+S して保存した .html を渡すだけ
+npm run apply:realpage -- ~/Downloads/案件一覧.html
+npm run apply:realpage -- ~/Downloads/案件詳細.html --draft   # 応募文まで作る
+npm run apply:realpage -- ページ.html --site lancers --url "https://www.lancers.jp/work/search?..."
+```
+
+`--url` は省略できる（Chromeが保存時に埋め込む `saved from url=` を読む）。
+出力は拡張機能の「🔧 このページを診断」と同じ内容で、
+一覧の読み取り・詳細の読み取り・6条件の判定・募集要項の読み取り・
+フォームの入力欄まで一度に確認できる。
+
 ## 何をテストしているか
 
 | ファイル | 内容 |
