@@ -152,6 +152,93 @@ check('箇条書きの長い行は警告しない',
 check('引用の中は文字数に数えない',
   cp.deodorize(`「${'あ'.repeat(80)}」を拝見しました。`).warnings.every((w) => !w.includes('長すぎ')));
 
+/* ========== マスト条件が本当に効いているか（意地悪な募集文で試す） ========== */
+section('マスト条件の意地悪テスト');
+
+const BASE = '個人のお客様向けのオンラインスクールです。アポイントは弊社で用意します。Zoomで完結します。単価は50万円。';
+const passes = (desc, site = 'lancers') => {
+  const scored = sc.scoreJob({ site, title: '', description: desc });
+  return sc.checkMust(scored, sc.DEFAULT_MUST).passed;
+};
+const whyNot = (desc, site = 'lancers') => {
+  const scored = sc.scoreJob({ site, title: '', description: desc });
+  const mu = sc.checkMust(scored, sc.DEFAULT_MUST);
+  return [...mu.reasons, ...mu.unconfirmed.map((u) => `未確認:${u}`)].join(' / ');
+};
+
+check('条件を満たす募集文は通す', passes(BASE));
+
+// --- 打ち消し表現に釣られない（通すべきもの） ---
+check('「初期費用はかかりません」を危険案件にしない', passes(`${BASE}初期費用は一切かかりません。`), whyNot(`${BASE}初期費用は一切かかりません。`));
+check('「登録料は不要です」を危険案件にしない', passes(`${BASE}登録料は不要です。`));
+check('「訪問はありません」を現場訪問にしない', passes(`${BASE}訪問はありません。`));
+check('「対面はございません」を現場訪問にしない', passes(`${BASE}対面での商談はございません。`));
+check('「出社は不要です」を現場訪問にしない', passes(`${BASE}出社は不要です。`));
+check('「新規開拓は一切ありません」を自己獲得型にしない', passes(`${BASE}新規開拓は一切ありません。`));
+check('「テレアポは不要です」を弾かない', passes(`${BASE}テレアポは不要です。`));
+check('「ノルマはありません」を弾かない', passes(`${BASE}ノルマはありません。`));
+
+// --- 条件に反するものは絶対に通さない ---
+const mustBlock = [
+  ['月1回の訪問が必須', `${BASE}月に1回の訪問があります。`],
+  ['対面商談あり', `${BASE}対面での商談もお願いします。`],
+  ['来社が必要', `${BASE}月初は来社をお願いします。`],
+  ['常駐', `${BASE}週2日の常駐をお願いします。`],
+  ['法人のお客様が混ざる', '個人のお客様と法人のお客様の両方に対応いただきます。アポイントは弊社で用意します。Zoom完結。単価50万円。無形商材のスクールです。'],
+  ['法人向けと明記', '法人のお客様向けのサービスです。アポイントは弊社で用意します。Zoom完結。単価50万円。無形商材。'],
+  ['企業様向けの支援', '企業様向けの集客支援サービスです。アポイントは弊社で用意します。Zoom完結。単価50万円。'],
+  ['事業者様向け', '事業者様向けのサービスです。アポイントは弊社で用意します。Zoom完結。単価50万円。無形商材。'],
+  ['自分でも新規開拓が必要', '個人のお客様向けスクール。アポイントは弊社で用意しますが、ご自身での新規開拓もお願いします。Zoom完結。単価50万円。'],
+  ['アポは自分で獲得', '個人のお客様向けスクール。アポイントはご自身で獲得してください。Zoom完結。単価50万円。'],
+  ['交流会でアポ取り', '個人のお客様向けスクール。交流会でアポイントを取ってきてください。Zoom完結。単価50万円。'],
+  ['有形商材（家電）', '個人のお客様に家電を販売します。アポイントは弊社で用意します。Zoom完結。単価50万円。'],
+  ['有形商材（不動産）', '個人のお客様に不動産をご紹介します。アポイントは弊社で用意します。Zoom完結。単価50万円。'],
+  ['子ども向け', '個人のお客様（保護者様）向けの学習塾です。アポイントは弊社で用意します。Zoom完結。単価50万円。'],
+  ['単価10万円以下', '個人のお客様向けのオンライン講座。アポイントは弊社で用意します。Zoom完結。単価は5万円。'],
+  ['初期費用を取る', `${BASE}初期費用として研修費3万円をご負担いただきます。`],
+  ['情報商材', `${BASE}情報商材の販売です。`],
+  ['LINEに誘導', `${BASE}LINE登録で詳細をお伝えします。`],
+  ['別スクールへの勧誘', `${BASE}まずは弊社のコミュニティに参加して、一緒に活動しませんか。`],
+  ['口座を借りる', `${BASE}銀行口座の名義を貸してください。`],
+  ['暗号資産の勧誘', `${BASE}暗号資産の販売もお願いします。`],
+];
+for (const [name, desc] of mustBlock) {
+  check(`★絶対に通さない: ${name}`, !passes(desc), `通ってしまった`);
+}
+check('★クラウドワークスの案件は、内容が完璧でも通さない', !passes(BASE, 'crowdworks'));
+
+// --- 情報が足りないものは通さない ---
+const mustAsk = [
+  ['何も書いていない', 'やる気のある方募集。詳細は面談で。'],
+  ['BtoCか分からない', 'オンラインスクールの営業。アポイントは弊社で用意します。Zoom完結。単価50万円。'],
+  ['無形か分からない', '個人のお客様向け。アポイントは弊社で用意します。Zoom完結。単価50万円。'],
+  ['アポの出所が分からない', '個人のお客様向けの無形商材のスクール。Zoom完結。単価50万円。'],
+  ['オンラインか分からない', '個人のお客様向けの無形商材のスクール。アポイントは弊社で用意します。単価50万円。'],
+];
+for (const [name, desc] of mustAsk) {
+  check(`★情報が足りなければ通さない: ${name}`, !passes(desc), `通ってしまった`);
+}
+check('単価が書いていないだけなら通す（既定設定）',
+  passes('個人のお客様向けの無形商材のスクール。アポイントは弊社で用意します。Zoom完結。'));
+
+// --- 通したものは必ず全条件を満たしている（不変条件） ---
+section('通した案件は必ず全条件を満たす');
+const allSamples = [BASE, ...mustBlock.map(([, d]) => d), ...mustAsk.map(([, d]) => d),
+  `${BASE}初期費用は一切かかりません。`, `${BASE}訪問はありません。`];
+let broken = 0;
+for (const desc of allSamples) {
+  const scored = sc.scoreJob({ site: 'lancers', title: '', description: desc });
+  const mu = sc.checkMust(scored, sc.DEFAULT_MUST);
+  if (!mu.passed) continue;
+  const ng = (scored.checklist || []).filter((c) => c.status === 'ng');
+  const unconfirmedMust = sc.DEFAULT_MUST.filter((k) => {
+    const c = (scored.checklist || []).find((x) => x.key === k);
+    return !c || (c.status !== 'ok' && !(c.status === 'warn' && k === 'price'));
+  });
+  if (ng.length || unconfirmedMust.length || scored.redFlags.length || scored.banned) broken++;
+}
+check('★通した案件に「条件に反する」「未確認」「危険」が1件も混ざらない', broken === 0, `${broken}件混ざった`);
+
 /* ========== 案件の状態管理 ========== */
 section('案件の状態管理（同じものが二度と出てこないこと）');
 

@@ -124,6 +124,28 @@ check(`合格したのは想定どおり ${EXPECT_PASS.join(',')} 番`,
   JSON.stringify([...passedIds].sort((a, b) => a - b)) === JSON.stringify(EXPECT_PASS),
   `実際: ${passedIds.sort((a, b) => a - b).join(',')}`);
 
+console.log('\n=== ④の2 通した案件は必ず全条件を満たす（不変条件）===');
+{
+  const delivered = jobs.filter((j) => j.must && j.must.passed);
+  check('★通した案件に「条件に反する」項目が1つも無い',
+    delivered.every((j) => (j.checklist || []).every((c) => c.status !== 'ng')),
+    delivered.filter((j) => (j.checklist || []).some((c) => c.status === 'ng')).map((j) => j.id).join(','));
+  check('★通した案件に危険な条件が無い',
+    delivered.every((j) => !(j.redFlags || []).length && !j.banned),
+    delivered.filter((j) => (j.redFlags || []).length || j.banned).map((j) => j.id).join(','));
+  check('★通した案件は必須4項目がすべて確認済み',
+    delivered.every((j) => !(j.must.unconfirmed || []).length),
+    delivered.filter((j) => (j.must.unconfirmed || []).length).map((j) => `${j.id}:${j.must.unconfirmed}`).join(' / '));
+  check('★BtoBの案件が1件も通っていない',
+    delivered.every((j) => (j.checklist || []).find((c) => c.key === 'target').status === 'ok'), '');
+  check('★アポイント譲渡型でない案件が1件も通っていない',
+    delivered.every((j) => (j.checklist || []).find((c) => c.key === 'appointment').status === 'ok'), '');
+  check('★オンライン完結でない案件が1件も通っていない',
+    delivered.every((j) => (j.checklist || []).find((c) => c.key === 'style').status === 'ok'), '');
+  check('★有形商材の案件が1件も通っていない',
+    delivered.every((j) => (j.checklist || []).find((c) => c.key === 'product').status === 'ok'), '');
+}
+
 console.log('\n=== ⑤ 合格した案件だけがタブで開く ===');
 await sleep(1500);
 const openedJobUrls = ctx.pages().map((p) => p.url()).filter((u) => /\/job\/\d+/.test(u));
