@@ -394,6 +394,16 @@ for (const k of ['window', 'document', 'DOMParser', 'Element', 'HTMLElement', 'H
 }
 const domMod = await import('../extension/content/dom.js');
 
+/* ========== JavaScriptで読み込むサイト（詳細が取れないことの検知） ========== */
+section('SPAの外枠ページを誤検知しないこと');
+
+check('同じタイトルなら外枠ページと判定', domMod.looksLikeShellPage('案件検索 | 複業クラウド', '案件検索 | 複業クラウド'));
+check('前後の空白は無視する', domMod.looksLikeShellPage('  案件検索  ', '案件検索'));
+check('タイトルが違えば外枠ではない', !domMod.looksLikeShellPage('【営業顧問】募集 | 複業クラウド', '案件検索 | 複業クラウド'));
+check('片方が空なら外枠と判定しない', !domMod.looksLikeShellPage('', '案件検索 | 複業クラウド'));
+check('両方空でも外枠と判定しない', !domMod.looksLikeShellPage('', ''));
+
+
 const listHtml = (cards) => `<main><h1>案件</h1>${cards}</main>`;
 function setBody(html) { document.body.innerHTML = html; }
 

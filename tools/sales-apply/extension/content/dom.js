@@ -286,3 +286,18 @@ export function scrapeDetailFromHtml(html, hints, url) {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   return buildDetail(doc, hints, url, false);
 }
+
+/**
+ * 「詳細ページとして取得したものが、実は一覧ページ（アプリの外枠）そのもの」
+ * かどうかを、<title>タグの一致で判定する。
+ *
+ * JavaScriptで中身を後から読み込むタイプのサイト（クライアント側レンダリングの
+ * SPA）は、fetch() では読み込み前の空の外枠しか取れず、どの案件IDに対しても
+ * 同じ内容が返ってくる。これを見分けないと「詳細を取得できた」と誤認して、
+ * 中身のない情報で誤判定してしまう。
+ */
+export function looksLikeShellPage(fetchedTitle, listPageTitle) {
+  const a = String(fetchedTitle || '').trim();
+  const b = String(listPageTitle || '').trim();
+  return !!a && !!b && a === b;
+}

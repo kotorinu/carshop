@@ -15,7 +15,7 @@ try {
   console.log('   （単体テストだけなら npm run apply:test で動きます）\n');
   process.exit(0);
 }
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -46,6 +46,7 @@ const ctx = await chromium.launchPersistentContext(userDir, {
   executablePath: CHROME,
   headless: true,
   chromiumSandbox: false,
+  acceptDownloads: true,
   args: [
     '--headless=new',           // 拡張機能は新しいヘッドレスでないと動かない
     '--no-sandbox',
@@ -144,6 +145,27 @@ console.log('\n=== ④の2 通した案件は必ず全条件を満たす（不�
     delivered.every((j) => (j.checklist || []).find((c) => c.key === 'style').status === 'ok'), '');
   check('★有形商材の案件が1件も通っていない',
     delivered.every((j) => (j.checklist || []).find((c) => c.key === 'product').status === 'ok'), '');
+}
+
+console.log('\n=== ④の3 SPA（JavaScriptで読み込むサイト）を誤読しないこと ===');
+{
+  const spaJobs = jobs.filter((j) => Number(String(j.id)) >= 21 && Number(String(j.id)) <= 23);
+  check('★SPAの案件が見つかっている（一覧のカードは読めている）', spaJobs.length === 3, `${spaJobs.length}件`);
+  check('★外枠ページのタイトルで上書きされていない（カード自身のタイトルが残る）',
+    spaJobs.every((j) => !String(j.title).includes('テスト求人サイト（SPA）')),
+    spaJobs.map((j) => j.title).join(' / '));
+  check('★詳細取得済みフラグが立っていない（外枠を詳細として使っていない）',
+    spaJobs.every((j) => !j.detailFetched), spaJobs.map((j) => `${j.id}:${j.detailFetched}`).join(' / '));
+  check('★カードの短い説明のまま（外枠の内容で汚染されていない）',
+    spaJobs.every((j) => (j.description || '').length < 100),
+    spaJobs.map((j) => `${j.id}:${(j.description || '').length}字`).join(' / '));
+  check('★確認できなかった項目として扱われる（誤って合格にしない）',
+    spaJobs.every((j) => j.must && !j.must.passed), '');
+
+  const crawlNow = await popup.evaluate(() => new Promise((r) => chrome.storage.local.get({ crawl: {} }, (o) => r(o.crawl))));
+  check('SPAサイトの説明がログに出る',
+    (crawlNow.log || []).some((l) => l.includes('JavaScriptで読み込まれる')),
+    (crawlNow.log || []).join(' / '));
 }
 
 console.log('\n=== ⑤ 合格した案件だけがタブで開く ===');
@@ -508,6 +530,29 @@ console.log('\n=== ⑫の2 読み取り診断（実サイトで使う道具）==
     !freport.includes('koto.tama.yellow') && !freport.includes('08042934580'), '');
 
   await dpage.close(); await fpage.close();
+}
+
+console.log('\n=== ⑫の3 CSVは常に全件を書き出す（候補0件でも空にならない）===');
+{
+  // わざと候補タブ（0件のはず）を開いた状態でCSVを押す
+  await popup.evaluate(() => document.querySelector('.tabs button[data-tab="candidate"]').click());
+  await popup.waitForTimeout(300);
+  const candidateEmpty = (await popup.locator('#list').textContent()).includes('候補が0') === false
+    ? true : true; // タブの中身に関わらず、次のCSVが空でないことを検証する
+
+  const [download] = await Promise.all([
+    popup.waitForEvent('download'),
+    popup.click('#csv'),
+  ]);
+  const csvPath = await download.path();
+  const csv = readFileSync(csvPath, 'utf8');
+  const dataRows = csv.trim().split(/\r?\n/).slice(1).filter(Boolean);
+  const allJobs = await readJobs();
+  check('★候補タブ（中身が少ない状態）でもCSVは全件を含む',
+    dataRows.length === allJobs.length, `CSV${dataRows.length}行 / 実際の案件${allJobs.length}件`);
+  check('CSVにヘッダー行がある', csv.startsWith('\ufeff"サイト"') || csv.startsWith('"サイト"'));
+  check('CSVに書きかけ・応募済み・対象外が混ざって入っている',
+    /書きかけ/.test(csv) && /対象外/.test(csv), csv.slice(0, 200));
 }
 
 console.log('\n=== ⑬ 使用禁止の媒体 ===');

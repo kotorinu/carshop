@@ -293,9 +293,17 @@ $('#diagCopy').onclick = async () => {
 };
 $('#diagClose').onclick = () => { $('#diagBox').hidden = true; };
 
+// ★ CSVは常に「集めた全件」を書き出す。今どのタブを見ているかに関わらず同じ内容になる。
+//   （前は今開いているタブの中身だけを書き出していたため、候補0件のタブで押すと
+//    中身が集まっているのに空のCSVが出るという不具合があった）
+function allRows() {
+  const jobs = state.jobs || [];
+  return JS ? JS.sortForList(jobs) : jobs;
+}
 $('#csv').onclick = () => {
   const head = ['サイト', 'タイトル', '状態', '点数', '報酬', '応募数', '条件に反する点', '確認できず', 'URL'];
-  const lines = [head, ...rows().map((j) => [j.site || '', j.title || '',
+  const data = allRows();
+  const lines = [head, ...data.map((j) => [j.site || '', j.title || '',
     (JS && JS.STATUS_LABEL[j.status]) || j.status || '', j.score, j.budget || '', j.applicants ?? '',
     (j.must && j.must.reasons || []).join(' / '), (j.must && j.must.unconfirmed || []).join(' / '), j.url])]
     .map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
@@ -305,6 +313,7 @@ $('#csv').onclick = () => {
   a.download = `営業案件_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  $('#hint').textContent = `${data.length}件を書き出しました（全タブぶん）。`;
 };
 
 load();

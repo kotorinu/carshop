@@ -90,6 +90,14 @@ export const JOBS = [
     title: '結婚相談所のカウンセラー募集', teaser: '在宅OK', budget: '成果報酬',
     body: '個人のお客様向けの結婚相談サービスです。Zoomで完結します。単価は60万円の無形商材です。未経験歓迎。' },
 
+  // ---- SPA（JavaScriptで中身を読み込むサイト）のケース ----
+  { id: 21, expect: 'reject', why: 'SPAの外枠しか取れず、カードの短い説明だけでは条件を確認できない', site: 'E', spaShell: true,
+    title: 'オンライン講座の個別相談スタッフ', teaser: '個人のお客様向け', budget: '成果報酬', body: '' },
+  { id: 22, expect: 'reject', why: '同上（2件目）', site: 'E', spaShell: true,
+    title: 'コーチングサービスの商談担当', teaser: '在宅・未経験可', budget: '成果報酬', body: '' },
+  { id: 23, expect: 'reject', why: '同上（3件目）', site: 'E', spaShell: true,
+    title: '結婚相談所のカウンセラー募集', teaser: 'フルリモート', budget: '成果報酬', body: '' },
+
   // ---- 募集要項の指示を読めているかを見る案件 ----
   { id: 13, expect: 'pass', why: '指定項目・合言葉・字数制限つき', site: 'B',
     title: 'キャリアスクールの個別相談（BtoC・アポ支給）',

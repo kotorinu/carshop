@@ -76,28 +76,44 @@
       .sort((a, b) => b.score - a.score)
       .slice(0, MAX_DETAIL);
 
+    // 詳細を取りに行った結果が、毎回「一覧ページの外枠そのもの」だったら、
+    // JavaScriptで中身を読み込むサイトだと判断して、以降は取りに行くのをやめる。
+    // （fetchはJavaScriptを実行しないので、こういうサイトからは中身が取れない）
+    const pageTitle = document.title;
+    let shellHits = 0;
+    const SHELL_LIMIT = 2;
+    let detailUnavailable = false;
+
     const out = [];
     for (let i = 0; i < worthOpening.length; i++) {
       const j = worthOpening[i];
       const url = ad.detailUrl ? ad.detailUrl(j.id) : j.url;
       let full = j;
-      try {
-        const res = await fetch(url, { credentials: 'include' });
-        if (res.ok) {
-          const detail = dom.scrapeDetailFromHtml(await res.text(), ad.hints || {}, url);
-          // 一覧で拾えた情報は残しつつ、本文・報酬は詳細のほうを優先する
-          full = {
-            ...j,
-            title: detail.title || j.title,
-            description: detail.description.length > (j.description || '').length ? detail.description : j.description,
-            budget: detail.budget || j.budget,
-            applicants: detail.applicants ?? j.applicants,
-            clientVerified: detail.clientVerified || j.clientVerified,
-            url,
-            detailFetched: true,
-          };
-        }
-      } catch { /* 取れなければカードの情報のまま採点する */ }
+
+      if (!detailUnavailable) {
+        try {
+          const res = await fetch(url, { credentials: 'include' });
+          if (res.ok) {
+            const detail = dom.scrapeDetailFromHtml(await res.text(), ad.hints || {}, url);
+            if (dom.looksLikeShellPage(detail.title, pageTitle)) {
+              shellHits++;
+              if (shellHits >= SHELL_LIMIT) detailUnavailable = true;
+            } else {
+              // 一覧で拾えた情報は残しつつ、本文・報酬は詳細のほうを優先する
+              full = {
+                ...j,
+                title: detail.title || j.title,
+                description: detail.description.length > (j.description || '').length ? detail.description : j.description,
+                budget: detail.budget || j.budget,
+                applicants: detail.applicants ?? j.applicants,
+                clientVerified: detail.clientVerified || j.clientVerified,
+                url,
+                detailFetched: true,
+              };
+            }
+          }
+        } catch { /* 取れなければカードの情報のまま採点する */ }
+      }
 
       const scored = { ...full, site: ad.id, ...scoring.scoreJob({ ...full, site: ad.id }, profile) };
       out.push({ ...scored, must: scoring.checkMust(scored, mustKeys) });
@@ -105,10 +121,14 @@
       chrome.runtime.sendMessage({
         type: 'crawlTick', site: ad.id, done: i + 1, total: worthOpening.length,
       });
-      if (i < worthOpening.length - 1) await sleep(FETCH_INTERVAL_MS);
+      if (i < worthOpening.length - 1 && !detailUnavailable) await sleep(FETCH_INTERVAL_MS);
     }
 
-    report({ site: ad.id, jobs: out, scanned: cards.length + skipped, skipped, pagesRead });
+    const note = detailUnavailable
+      ? '詳細ページはJavaScriptで読み込まれるため取得できませんでした。案件一覧の短い説明だけで判定しています。'
+        + '正確に判定したいときは、気になる案件を開いて「🔧 このページを診断」を使ってください。'
+      : undefined;
+    report({ site: ad.id, jobs: out, scanned: cards.length + skipped, skipped, pagesRead, note });
   } catch (e) {
     report({ site: 'unknown', jobs: [], note: `読み取りに失敗: ${String(e).slice(0, 120)}` });
   }

@@ -4,6 +4,8 @@ import { JOBS } from './jobs.mjs';
 
 const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
 
+const SHELL_TITLE = '案件検索 | テスト求人サイト（SPA）';
+
 /** 媒体ごとにHTMLの作りを変える（実際のサイトの違いを再現するため） */
 const LAYOUTS = {
   // A: divのカード（ランサーズ風）
@@ -22,6 +24,10 @@ const LAYOUTS = {
   // C: リンクだけの短いカード（Indeed風・情報が少ない）
   C: (js) => `<main><h1>求人</h1><ul>${js.map((j) => `
     <li><a href="/job/${j.id}">${esc(j.title)}</a></li>`).join('')}</ul></main>`,
+  // E: SPA（fetchでは中身が読めない。詳細URLは常に外枠を返す）
+  E: (js) => `<main><h1>お仕事</h1>${js.map((j) => `
+    <div class="job-card"><a href="/job/${j.id}">${esc(j.title)}</a><span>${esc(j.budget)}</span></div>`).join('')}
+    </main>`,
   // D: 入れ子が深く、ヘッダーにも案件リンクがある（引っかけ）
   D: (js) => `
     <header><nav><a href="/job/${js[0] ? js[0].id : 1}">おすすめ求人</a><a href="/">トップ</a></nav></header>
@@ -34,11 +40,16 @@ const LAYOUTS = {
 const listPage = (site) => {
   const js = site ? JOBS.filter((j) => (j.site || 'A') === site) : JOBS;
   const layout = LAYOUTS[site || 'A'] || LAYOUTS.A;
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>案件検索</title></head><body>
+  const title = site === 'E' ? SHELL_TITLE : '案件検索';
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(title)}</title></head><body>
 ${site === 'D' ? '' : '<header><a href="/">テスト求人サイト</a></header>'}
 ${layout(js)}
 <footer><a href="/">トップへ</a></footer></body></html>`;
 };
+
+/** SPAの外枠（JavaScriptで中身を読み込む前の、空のHTML）を模したページ */
+const shellPage = () => `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(SHELL_TITLE)}</title></head>
+<body><div id="app">Loading...</div></body></html>`;
 
 const detailPage = (j) => `<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>${esc(j.title)}</title></head><body>
 <header><a href="/">テスト求人サイト</a></header>
@@ -72,7 +83,10 @@ export function start(port = 8787) {
     if (url.pathname === '/' || url.pathname === '/search') return send(listPage(url.searchParams.get('site')));
     if ((m = url.pathname.match(/^\/job\/(\d+)$/))) {
       const j = byId.get(m[1]);
-      return j ? send(detailPage(j)) : (res.writeHead(404), res.end('nf'));
+      if (!j) { res.writeHead(404); return res.end('nf'); }
+      // このサイトは、案件21番だけ「JavaScriptで中身を読み込むSPA」を模していて、
+      // fetch()では詳細が取れず外枠しか返ってこない、という状況を再現する
+      return send(j.spaShell ? shellPage() : detailPage(j));
     }
     if ((m = url.pathname.match(/^\/apply\/(\d+)$/))) {
       const j = byId.get(m[1]);
