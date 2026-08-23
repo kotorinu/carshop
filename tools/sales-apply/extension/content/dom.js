@@ -136,6 +136,27 @@ export function highlight(el) {
 /* ---------- 一覧ページから案件を拾う汎用エンジン ---------- */
 
 /**
+ * サイトが対応済み（＝detailUrlという「idから正しいURLを組み立てる関数」を
+ * 持っている）なら、案件のURLは常にそれで作り直す。
+ *
+ * href.split('?')[0] で末尾のクエリ文字列を落としているため、
+ * Indeedのように「?jk=案件ID」という形でidを持つサイトだと、
+ * 素通しのURLはid（jk）が欠けたリンク切れになってしまう。
+ * detailUrlがあれば、そのURLだけを信じて作り直すほうが確実。
+ */
+export function canonicalizeUrls(cards, adapter) {
+  if (!adapter || typeof adapter.detailUrl !== 'function') return cards;
+  return cards.map((c) => {
+    try {
+      const url = adapter.detailUrl(c.id);
+      return url ? { ...c, url } : c;
+    } catch {
+      return c;
+    }
+  });
+}
+
+/**
  * リンクから見て「案件1件分」のまとまりになっている親要素を探す。
  *
  * 文字数だけで親をたどると、情報の少ないカードのときに一覧全体を掴んでしまい、
@@ -162,6 +183,37 @@ function cardOf(link, pattern) {
     best = el;
   }
   return best;
+}
+
+/**
+ * 報酬の文字列を、数字と単位の直後で止めて抜き出す。
+ * サイトによっては要素の間に改行が無く、金額のすぐ後ろに
+ * 「プロフィールだけでカンタン応募」のようなボタン文言が続くため、
+ * 何も考えずに40字を切り取ると隣の文言まで巻き込んでしまう。
+ * 金額らしき形（◯円・◯円〜◯円・◯万円など）が終わった所で切る。
+ */
+export const BUDGET_RE = /(?:予算|報酬|価格|時給|単価|固定報酬|時間単価|給与|月給)[^\n\d]{0,6}[\d,]+(?:\.\d+)?\s*(?:万)?円?(?:\s*[〜~\-]\s*[\d,]+(?:\.\d+)?\s*(?:万)?円)?(?:\s*(?:以上|以下|前後))?/;
+
+/** 「成果報酬」「応相談」のように、金額の数字が無い報酬表記 */
+export const BUDGET_NO_NUMBER_RE = /(?:成果報酬|完全歩合制|応相談|要相談|給与応相談)/;
+
+/**
+ * BUDGET_RE で金額を拾う。ただし「成果報酬」のような数字なし表現の中に
+ * たまたま「報酬」という文字が含まれているせいで、そのすぐ後ろにある
+ * 無関係な数字（応募者数など）を金額と誤認しないよう、
+ * 数字なし表現の範囲内から始まる候補は除外する。
+ * 見つからなければ数字なし表現を、それも無ければ空文字を返す。
+ */
+export function extractBudget(text) {
+  const s = String(text || '');
+  const noNumber = [...s.matchAll(new RegExp(BUDGET_NO_NUMBER_RE.source, 'g'))]
+    .map((m) => [m.index, m.index + m[0].length]);
+  const insideNoNumber = (i) => noNumber.some(([start, end]) => i >= start && i < end);
+
+  for (const m of s.matchAll(new RegExp(BUDGET_RE.source, 'g'))) {
+    if (!insideNoNumber(m.index)) return m[0];
+  }
+  return (s.match(BUDGET_NO_NUMBER_RE) || [])[0] || '';
 }
 
 const num = (s) => {
@@ -207,8 +259,7 @@ function scrapeListFrom(root, detailPattern, baseUrl, opt = {}) {
     seen.add(id);
 
     const title = text(q(card, ['h2 a', 'h3 a', 'h2', 'h3', '[class*="title"]'])) || text(a);
-    const budget = (cardText.match(/(?:予算|報酬|価格|時給|単価)[^\n]{0,40}/) || [])[0]
-      || (cardText.match(/[\d,]+\s*(?:万)?円[^\n]{0,20}/) || [])[0] || '';
+    const budget = extractBudget(cardText);
     const applicants = num((cardText.match(/(?:提案|応募)[^\n]{0,6}?(\d+)\s*(?:人|件)/) || [])[1]);
 
     jobs.push({
@@ -254,8 +305,7 @@ function buildDetail(root, hints, url, useVisibility) {
     || (root.title || '');
   const description = pickDescription(root, hints, useVisibility).slice(0, 8000);
   const page = text(root.body || root);
-  const budget = text(q(root, hints.budget || []))
-    || (page.match(/(?:予算|報酬|固定報酬|時間単価|給与|時給|月給)[^\n]{0,40}/) || [])[0] || '';
+  const budget = text(q(root, hints.budget || [])) || extractBudget(page);
   const applicants = num((page.match(/(?:提案|応募)[^\n]{0,6}?(\d+)\s*(?:人|件)/) || [])[1]);
   // ホスト名やポート番号からidを拾わないよう、パス以降だけを見る
   let tail = url;

@@ -59,6 +59,11 @@
     }
     if (!cards.length) return report({ site: ad.id, jobs: [], note: '一覧を読み取れませんでした' });
 
+    // detailUrl を持つサイトは、案件のURLを常にそれで作り直す。
+    // href.split('?')[0] でクエリ文字列（Indeedのjk等）が欠けたリンク切れURLに
+    // なるのを防ぐため（詳細を取りに行けなかった案件でも、正しいURLで開けるように）。
+    cards = dom.canonicalizeUrls(cards, ad);
+
     const skipped = cards.filter((c) => known.has(`${ad.id}:${c.id}`)).length;
     cards = cards.filter((c) => !known.has(`${ad.id}:${c.id}`));
     if (!cards.length) {

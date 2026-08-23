@@ -394,6 +394,37 @@ for (const k of ['window', 'document', 'DOMParser', 'Element', 'HTMLElement', 'H
 }
 const domMod = await import('../extension/content/dom.js');
 
+/* ========== 報酬の抜き出し（隣の文言を巻き込まないこと） ========== */
+section('報酬の抜き出し');
+
+check('金額の直後で止まる（実際に壊れていた例）',
+  domMod.extractBudget('時給 1,900円プロフィールだけでカンタン応募Posted30+日前') === '時給 1,900円');
+check('円だけの表記も止まる', domMod.extractBudget('報酬50,000円応募締切間近') === '報酬50,000円');
+check('レンジ表記は範囲ごと拾う', domMod.extractBudget('時給 2,000円 ~ 3,000円 -  業務委託').includes('3,000円'));
+check('「以上」まで拾う', domMod.extractBudget('時給 3,000円以上 -  業務委託').includes('以上'));
+check('万円表記', domMod.extractBudget('月給10万円未経験可') === '月給10万円');
+check('数字なしの「成果報酬」を拾う', domMod.extractBudget('報酬: 成果報酬') === '成果報酬');
+check('★「成果報酬」の直後の無関係な数字を金額と誤認しない（改行なしで隣接する場合）',
+  domMod.extractBudget('報酬: 成果報酬提案 2 人業務委託・在宅') === '成果報酬',
+  domMod.extractBudget('報酬: 成果報酬提案 2 人業務委託・在宅'));
+check('応相談も拾う', domMod.extractBudget('給与: 応相談') === '応相談');
+check('該当なしは空文字', domMod.extractBudget('よろしくお願いします') === '');
+
+/* ========== URLの組み立て直し（クエリ文字列が欠けたリンク切れを防ぐ） ========== */
+section('URLの組み立て直し');
+
+const indeedLike = { id: 'a42eade53962a683', detailUrl: (id) => `https://jp.indeed.com/viewjob?jk=${id}` };
+const cardsIn = [{ id: 'a42eade53962a683', url: 'https://jp.indeed.com/viewjob', title: 'x' }];
+const fixed = domMod.canonicalizeUrls(cardsIn, indeedLike);
+check('★detailUrlを持つサイトはURLを作り直す（jkが欠けない）',
+  fixed[0].url === 'https://jp.indeed.com/viewjob?jk=a42eade53962a683', fixed[0].url);
+
+const lancersLike = { id: 'x', detailUrl: undefined };
+const same = domMod.canonicalizeUrls(cardsIn, lancersLike);
+check('detailUrlが無いサイトはそのまま', same[0].url === cardsIn[0].url);
+check('アダプタが無くても壊れない', domMod.canonicalizeUrls(cardsIn, null)[0].url === cardsIn[0].url);
+
+
 /* ========== JavaScriptで読み込むサイト（詳細が取れないことの検知） ========== */
 section('SPAの外枠ページを誤検知しないこと');
 
